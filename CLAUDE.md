@@ -48,6 +48,7 @@ This is a **Next.js 15** application using the **App Router** pattern with **Con
 - Uses shadcn/ui component patterns
 - Utility classes combined with `cn()` helper from `src/lib/utils.ts`
 - Tailwind CSS 4 with `tw-animate-css` for animations
+- **Mobile-first approach**: All components must be designed for mobile devices first, then enhanced for larger screens using responsive breakpoints (`sm:`, `md:`, `lg:`, `xl:`, `2xl:`)
 
 ### TypeScript Configuration
 - Main config: `tsconfig.json` (Next.js app)
@@ -66,6 +67,8 @@ This is a **Next.js 15** application using the **App Router** pattern with **Con
 - Tailwind CSS 4 is configured
 - Use `cn()` utility for conditional classes
 - shadcn/ui components available
+- **Mobile-first responsive design**: Start with mobile styles (base classes), then add responsive variants (`sm:`, `md:`, `lg:`, `xl:`, `2xl:`) for larger screens
+- Ensure touch-friendly interfaces with adequate spacing and button sizes for mobile devices
 
 ### Development Requirements
 - Node.js environment
