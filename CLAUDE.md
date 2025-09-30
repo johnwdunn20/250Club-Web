@@ -29,11 +29,20 @@ This is a **Next.js 15** application using the **App Router** pattern with **Con
 - **Convex** for real-time database and serverless functions
 - Functions located in `convex/` directory
 - Generated TypeScript types in `convex/_generated/`
+- **Clerk** for authentication and user management
+
+### Authentication Stack
+- **Clerk** integrated with Next.js (`@clerk/nextjs`)
+- Clerk middleware configured in `middleware.ts`
+- Convex-Clerk integration via `ConvexProviderWithClerk`
+- Auth configuration in `convex/auth.config.ts`
 
 ### Key Directories
 - `src/app/` - Next.js App Router pages and layouts
 - `src/lib/` - Shared utilities (includes shadcn/ui `cn` helper)
+- `src/components/` - React components (includes `ConvexClientProvider`)
 - `convex/` - Convex backend functions and schema
+- `middleware.ts` - Clerk authentication middleware
 
 ## Development Workflow
 
@@ -74,3 +83,16 @@ This is a **Next.js 15** application using the **App Router** pattern with **Con
 - Node.js environment
 - Both Next.js and Convex dev servers should run simultaneously
 - Environment variables configured in `.env`
+- Clerk application configured with proper environment variables
+
+### Environment Variables
+- `NEXT_PUBLIC_CONVEX_URL` - Convex deployment URL
+- `CLERK_JWT_ISSUER_DOMAIN` - Clerk JWT issuer domain for Convex integration
+- Standard Clerk environment variables for Next.js integration
+
+### Authentication Guidelines
+- Clerk is integrated at the root layout level via `ClerkProvider`
+- Convex uses Clerk authentication through `ConvexProviderWithClerk`
+- Authentication state is managed by Clerk's `useAuth` hook
+- Protected routes can be configured via Clerk middleware
+- User authentication flows handled by Clerk's built-in components
