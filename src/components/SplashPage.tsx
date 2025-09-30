@@ -19,9 +19,9 @@ export default function SplashPage() {
             </div>
           </div>
 
-          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold text-foreground tracking-tight animate-fade-in-up">
-            Welcome to{" "}
-            <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent animate-gradient">
+          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight animate-fade-in-up">
+            <span className="text-foreground">Welcome to</span>{" "}
+            <span className="block mt-2 bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent animate-gradient" style={{ backgroundSize: '200% 200%' }}>
               250 Club
             </span>
           </h1>
