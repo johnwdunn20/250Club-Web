@@ -1,9 +1,27 @@
+"use client";
+
+import { Authenticated, Unauthenticated } from "convex/react";
+import { SignInButton, UserButton } from "@clerk/nextjs";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
+
 export default function Home() {
   return (
-    <div className="min-h-screen p-8">
-      <main>
-        <h1 className="text-2xl font-bold">Welcome to 250 Club</h1>
-      </main>
-    </div>
+    <>
+      <Authenticated>
+        <UserButton />
+        {/* <Content /> */}
+        <div>Authenticated content</div>
+      </Authenticated>
+      <Unauthenticated>
+        <SignInButton />
+        <div>Unauthenticated content</div>
+      </Unauthenticated>
+    </>
   );
+}
+
+function Content() {
+  const messages = useQuery(api.messages.getForCurrentUser);
+  return <div>Authenticated content: {messages?.length}</div>;
 }
