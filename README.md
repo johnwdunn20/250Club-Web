@@ -1,6 +1,4 @@
 # TODO
 
-- Tab for current workout
-- Tab for finding friends
-- Tab to start challenge
-- Profile option
+- Auth - persist users in DB and ensure it's secure
+- DB model and implementation

@@ -1,8 +1,14 @@
 import { SignInButton } from "@clerk/nextjs";
+import { ThemeToggle } from "./ThemeToggle";
 
 export default function SplashPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-background via-secondary/20 to-accent/30 px-4 relative overflow-hidden">
+      {/* Theme toggle in corner */}
+      <div className="absolute top-4 right-4 z-20">
+        <ThemeToggle />
+      </div>
+
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-primary/20 rounded-full blur-3xl animate-pulse" />

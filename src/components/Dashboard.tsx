@@ -6,6 +6,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import TodaysWorkout from "./TodaysWorkout";
 import NewChallenge from "./NewChallenge";
 import FindFriends from "./FindFriends";
+import { ThemeToggle } from "./ThemeToggle";
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("workout");
@@ -23,7 +24,10 @@ export default function Dashboard() {
                 </span>
               </h1>
             </div>
-            <UserButton />
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <UserButton />
+            </div>
           </div>
         </div>
       </header>
