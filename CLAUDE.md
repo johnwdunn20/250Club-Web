@@ -2,18 +2,27 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Package Manager
+
+**IMPORTANT: This project uses `pnpm` as the package manager. Always use `pnpm` commands, never `npm`.**
+
 ## Common Commands
 
 ### Development
-- `npm run dev` - Start Next.js development server with Turbopack
-- `npm run dev:convex` - Start Convex development server (run in parallel with main dev server)
+- `pnpm dev` - Start Next.js development server with Turbopack
+- `pnpm dev:convex` - Start Convex development server (run in parallel with main dev server)
 
 ### Building and Deployment
-- `npm run build` - Build the Next.js application with Turbopack
-- `npm start` - Start the production server
+- `pnpm build` - Build the Next.js application with Turbopack
+- `pnpm start` - Start the production server
 
 ### Code Quality
-- `npm run lint` - Run ESLint for code linting
+- `pnpm lint` - Run ESLint for code linting
+
+### Package Management
+- `pnpm add <package>` - Add a new dependency
+- `pnpm add -D <package>` - Add a new dev dependency
+- `pnpm install` - Install all dependencies
 
 ## Architecture Overview
 
@@ -47,7 +56,7 @@ This is a **Next.js 15** application using the **App Router** pattern with **Con
 ## Development Workflow
 
 ### Convex Development
-- Always run both `npm run dev` and `npm run dev:convex` in parallel for full development experience
+- Always run both `pnpm dev` and `pnpm dev:convex` in parallel for full development experience
 - Convex functions follow new function syntax with explicit validators
 - Use the comprehensive Convex guidelines in `.cursor/rules/convex.mdc` for all database interactions
 - Schema defined in `convex/schema.ts`
