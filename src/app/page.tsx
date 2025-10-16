@@ -3,16 +3,24 @@
 import { Authenticated, Unauthenticated } from "convex/react";
 import SplashPage from "@/components/SplashPage";
 import Dashboard from "@/components/Dashboard";
-
+import { useStoreUserEffect } from "@/hooks/useStoreUserEffect";
 export default function Home() {
+  const { isLoading, isAuthenticated } = useStoreUserEffect();
   return (
     <>
-      <Authenticated>
-        <Dashboard />
-      </Authenticated>
-      <Unauthenticated>
-        <SplashPage />
-      </Unauthenticated>
+      {isLoading ? (
+        <div>Loading...</div>
+      ) : isAuthenticated ? (
+        <>
+          <Authenticated>
+            <Dashboard />
+          </Authenticated>
+        </>
+      ) : (
+        <Unauthenticated>
+          <SplashPage />
+        </Unauthenticated>
+      )}
     </>
   );
 }
