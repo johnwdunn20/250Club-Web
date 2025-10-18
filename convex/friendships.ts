@@ -10,14 +10,14 @@ export const searchUsers = query({
 
     // Get all users that match the search term
     const allUsers = await ctx.db.query("users").collect();
-    
+
     // Filter by search term (case insensitive)
     const searchLower = searchTerm.toLowerCase();
-    const matchingUsers = allUsers.filter(user => 
-      user._id !== currentUser._id && (
-        user.name?.toLowerCase().includes(searchLower) ||
-        user.email?.toLowerCase().includes(searchLower)
-      )
+    const matchingUsers = allUsers.filter(
+      (user) =>
+        user._id !== currentUser._id &&
+        (user.name?.toLowerCase().includes(searchLower) ||
+          user.email?.toLowerCase().includes(searchLower))
     );
 
     // Get existing friendships to exclude
@@ -26,11 +26,11 @@ export const searchUsers = query({
       .withIndex("by_user", (q) => q.eq("userId", currentUser._id))
       .collect();
 
-    const friendIds = new Set(existingFriendships.map(f => f.friendId));
-    
+    const friendIds = new Set(existingFriendships.map((f) => f.friendId));
+
     // Return users that aren't already friends
     return matchingUsers
-      .filter(user => !friendIds.has(user._id))
+      .filter((user) => !friendIds.has(user._id))
       .slice(0, 10); // Limit to 10 results
   },
 });
@@ -44,7 +44,7 @@ export const getFriends = query({
     // Get accepted friendships where current user is the userId
     const friendships = await ctx.db
       .query("friendships")
-      .withIndex("by_user", (q) => 
+      .withIndex("by_user", (q) =>
         q.eq("userId", currentUser._id).eq("status", "accepted")
       )
       .collect();
@@ -60,7 +60,7 @@ export const getFriends = query({
       })
     );
 
-    return friends.filter(f => f.friend); // Filter out any deleted friends
+    return friends.filter((f) => f.friend); // Filter out any deleted friends
   },
 });
 
@@ -73,7 +73,7 @@ export const getPendingRequests = query({
     // Get pending requests where current user is the friendId
     const requests = await ctx.db
       .query("friendships")
-      .withIndex("by_friend", (q) => 
+      .withIndex("by_friend", (q) =>
         q.eq("friendId", currentUser._id).eq("status", "pending")
       )
       .collect();
@@ -89,7 +89,7 @@ export const getPendingRequests = query({
       })
     );
 
-    return requestsWithUsers.filter(r => r.requester); // Filter out any deleted users
+    return requestsWithUsers.filter((r) => r.requester); // Filter out any deleted users
   },
 });
 
@@ -102,7 +102,7 @@ export const getSentRequests = query({
     // Get pending requests where current user is the userId
     const requests = await ctx.db
       .query("friendships")
-      .withIndex("by_user", (q) => 
+      .withIndex("by_user", (q) =>
         q.eq("userId", currentUser._id).eq("status", "pending")
       )
       .collect();
@@ -118,7 +118,7 @@ export const getSentRequests = query({
       })
     );
 
-    return requestsWithUsers.filter(r => r.friend); // Filter out any deleted users
+    return requestsWithUsers.filter((r) => r.friend); // Filter out any deleted users
   },
 });
 
@@ -142,7 +142,7 @@ export const sendFriendRequest = mutation({
     // Check if friendship already exists
     const existingFriendship = await ctx.db
       .query("friendships")
-      .withIndex("by_user", (q) => 
+      .withIndex("by_user", (q) =>
         q.eq("userId", currentUser._id).eq("status", "pending")
       )
       .filter((q) => q.eq(q.field("friendId"), friendId))
@@ -184,7 +184,10 @@ export const acceptFriendRequest = mutation({
     }
 
     // Verify this is a pending request to the current user
-    if (friendship.friendId !== currentUser._id || friendship.status !== "pending") {
+    if (
+      friendship.friendId !== currentUser._id ||
+      friendship.status !== "pending"
+    ) {
       throw new Error("Invalid friendship request");
     }
 
@@ -194,7 +197,7 @@ export const acceptFriendRequest = mutation({
     // Find and update the symmetric record
     const symmetricFriendship = await ctx.db
       .query("friendships")
-      .withIndex("by_user", (q) => 
+      .withIndex("by_user", (q) =>
         q.eq("userId", currentUser._id).eq("status", "pending")
       )
       .filter((q) => q.eq(q.field("friendId"), friendship.userId))
@@ -221,7 +224,10 @@ export const rejectFriendRequest = mutation({
     }
 
     // Verify this is a pending request to the current user
-    if (friendship.friendId !== currentUser._id || friendship.status !== "pending") {
+    if (
+      friendship.friendId !== currentUser._id ||
+      friendship.status !== "pending"
+    ) {
       throw new Error("Invalid friendship request");
     }
 
@@ -231,7 +237,7 @@ export const rejectFriendRequest = mutation({
     // Find and update the symmetric record
     const symmetricFriendship = await ctx.db
       .query("friendships")
-      .withIndex("by_user", (q) => 
+      .withIndex("by_user", (q) =>
         q.eq("userId", currentUser._id).eq("status", "pending")
       )
       .filter((q) => q.eq(q.field("friendId"), friendship.userId))
@@ -254,7 +260,7 @@ export const removeFriend = mutation({
     // Find both friendship records
     const allFriendships = await ctx.db
       .query("friendships")
-      .filter((q) => 
+      .filter((q) =>
         q.or(
           q.and(
             q.eq(q.field("userId"), currentUser._id),
@@ -268,8 +274,12 @@ export const removeFriend = mutation({
       )
       .collect();
 
-    const friendship1 = allFriendships.find(f => f.userId === currentUser._id && f.friendId === friendId);
-    const friendship2 = allFriendships.find(f => f.userId === friendId && f.friendId === currentUser._id);
+    const friendship1 = allFriendships.find(
+      (f) => f.userId === currentUser._id && f.friendId === friendId
+    );
+    const friendship2 = allFriendships.find(
+      (f) => f.userId === friendId && f.friendId === currentUser._id
+    );
 
     // Delete both records if they exist
     if (friendship1) {
