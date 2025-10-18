@@ -152,17 +152,11 @@ export const sendFriendRequest = mutation({
       throw new Error("Friendship already exists");
     }
 
-    // Create two symmetric friendship records
+    // Create only ONE friendship record (from requester to target)
+    // The symmetric record will be created when the request is accepted
     await ctx.db.insert("friendships", {
       userId: currentUser._id,
       friendId: friendId,
-      status: "pending",
-      requesterId: currentUser._id,
-    });
-
-    await ctx.db.insert("friendships", {
-      userId: friendId,
-      friendId: currentUser._id,
       status: "pending",
       requesterId: currentUser._id,
     });
@@ -191,21 +185,16 @@ export const acceptFriendRequest = mutation({
       throw new Error("Invalid friendship request");
     }
 
-    // Update both friendship records to accepted
+    // Update the original request to accepted
     await ctx.db.patch(friendshipId, { status: "accepted" });
 
-    // Find and update the symmetric record
-    const symmetricFriendship = await ctx.db
-      .query("friendships")
-      .withIndex("by_user", (q) =>
-        q.eq("userId", currentUser._id).eq("status", "pending")
-      )
-      .filter((q) => q.eq(q.field("friendId"), friendship.userId))
-      .first();
-
-    if (symmetricFriendship) {
-      await ctx.db.patch(symmetricFriendship._id, { status: "accepted" });
-    }
+    // NOW create the symmetric record as accepted
+    await ctx.db.insert("friendships", {
+      userId: friendship.userId, // The original requester
+      friendId: currentUser._id,
+      status: "accepted",
+      requesterId: friendship.requesterId,
+    });
 
     return { success: true };
   },
@@ -231,21 +220,8 @@ export const rejectFriendRequest = mutation({
       throw new Error("Invalid friendship request");
     }
 
-    // Update both friendship records to rejected
-    await ctx.db.patch(friendshipId, { status: "rejected" });
-
-    // Find and update the symmetric record
-    const symmetricFriendship = await ctx.db
-      .query("friendships")
-      .withIndex("by_user", (q) =>
-        q.eq("userId", currentUser._id).eq("status", "pending")
-      )
-      .filter((q) => q.eq(q.field("friendId"), friendship.userId))
-      .first();
-
-    if (symmetricFriendship) {
-      await ctx.db.patch(symmetricFriendship._id, { status: "rejected" });
-    }
+    // Just delete the pending request (no symmetric record exists yet)
+    await ctx.db.delete(friendshipId);
 
     return { success: true };
   },
