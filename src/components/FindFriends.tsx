@@ -159,25 +159,6 @@ export default function FindFriends() {
             )}
           </div>
         )}
-
-        {/* Invite link */}
-        <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-foreground">
-              Your Invite Link
-            </span>
-            <button className="text-sm text-primary font-semibold hover:underline">
-              Copy
-            </button>
-          </div>
-          <div className="text-sm text-muted-foreground font-mono truncate">
-            250club.app/invite/abc123xyz
-          </div>
-        </div>
-
-        <button className="w-full px-6 py-3 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary/90 transition-all shadow-md hover:shadow-lg">
-          Share Invite Link
-        </button>
       </div>
 
       {/* Friends list */}
