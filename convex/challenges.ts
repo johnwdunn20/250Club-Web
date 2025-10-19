@@ -203,3 +203,177 @@ export const getChallenge = query({
     };
   },
 });
+
+// Get today's challenge for the current user
+export const getTodaysChallenge = query({
+  args: {},
+  handler: async (ctx) => {
+    const currentUser = await getCurrentUser(ctx);
+
+    // Get today's date in YYYY-MM-DD format
+    const today = new Date().toISOString().split("T")[0];
+
+    // Find challenges for today where user is a participant
+    const participants = await ctx.db
+      .query("challenge_participants")
+      .withIndex("by_user", (q) => q.eq("userId", currentUser._id))
+      .collect();
+
+    const challengeIds = participants.map((p) => p.challengeId);
+
+    // Find today's challenge
+    let todaysChallenge = null;
+    for (const challengeId of challengeIds) {
+      const challenge = await ctx.db.get(challengeId);
+      if (
+        challenge &&
+        challenge.date === today &&
+        challenge.status === "active"
+      ) {
+        todaysChallenge = challenge;
+        break;
+      }
+    }
+
+    if (!todaysChallenge) {
+      return null;
+    }
+
+    // Get exercises for this challenge
+    const exercises = await ctx.db
+      .query("exercises")
+      .withIndex("by_challenge", (q) =>
+        q.eq("challengeId", todaysChallenge._id)
+      )
+      .collect();
+
+    // Get all participants
+    const allParticipants = await ctx.db
+      .query("challenge_participants")
+      .withIndex("by_challenge", (q) =>
+        q.eq("challengeId", todaysChallenge._id)
+      )
+      .collect();
+
+    // Get participant details with their progress
+    const participantsWithProgress = await Promise.all(
+      allParticipants.map(async (participant) => {
+        const user = await ctx.db.get(participant.userId);
+
+        // Get user's progress for each exercise
+        const exerciseProgress = await Promise.all(
+          exercises.map(async (exercise) => {
+            const progress = await ctx.db
+              .query("exercise_progress")
+              .withIndex("by_exercise_and_user", (q) =>
+                q
+                  .eq("exerciseId", exercise._id)
+                  .eq("userId", participant.userId)
+              )
+              .first();
+
+            return {
+              exerciseId: exercise._id,
+              exerciseName: exercise.name,
+              targetReps: exercise.targetReps,
+              completedReps: progress?.completedReps || 0,
+            };
+          })
+        );
+
+        // Calculate totals
+        const totalCompleted = exerciseProgress.reduce(
+          (sum, ep) => sum + ep.completedReps,
+          0
+        );
+        const totalTarget = exerciseProgress.reduce(
+          (sum, ep) => sum + ep.targetReps,
+          0
+        );
+        const completionPercentage =
+          totalTarget > 0
+            ? Math.round((totalCompleted / totalTarget) * 100)
+            : 0;
+
+        return {
+          ...participant,
+          user,
+          exerciseProgress,
+          totalCompleted,
+          totalTarget,
+          completionPercentage,
+        };
+      })
+    );
+
+    // Get creator info
+    const creator = await ctx.db.get(todaysChallenge.creatorId);
+
+    return {
+      ...todaysChallenge,
+      exercises: exercises.sort((a, b) => a.order - b.order),
+      participants: participantsWithProgress,
+      creator,
+      currentUserId: currentUser._id,
+    };
+  },
+});
+
+// Update exercise progress for the current user
+export const updateExerciseProgress = mutation({
+  args: {
+    exerciseId: v.id("exercises"),
+    completedReps: v.number(),
+  },
+  handler: async (ctx, { exerciseId, completedReps }) => {
+    const currentUser = await getCurrentUser(ctx);
+
+    // Validate completed reps
+    if (completedReps < 0) {
+      throw new Error("Completed reps cannot be negative");
+    }
+
+    // Get the exercise to find the challenge
+    const exercise = await ctx.db.get(exerciseId);
+    if (!exercise) {
+      throw new Error("Exercise not found");
+    }
+
+    // Check if user is a participant in this challenge
+    const participation = await ctx.db
+      .query("challenge_participants")
+      .withIndex("by_challenge", (q) =>
+        q.eq("challengeId", exercise.challengeId)
+      )
+      .filter((q) => q.eq(q.field("userId"), currentUser._id))
+      .first();
+
+    if (!participation) {
+      throw new Error("You are not a participant in this challenge");
+    }
+
+    // Check if progress already exists
+    const existingProgress = await ctx.db
+      .query("exercise_progress")
+      .withIndex("by_exercise_and_user", (q) =>
+        q.eq("exerciseId", exerciseId).eq("userId", currentUser._id)
+      )
+      .first();
+
+    if (existingProgress) {
+      // Update existing progress
+      await ctx.db.patch(existingProgress._id, {
+        completedReps,
+      });
+      return existingProgress._id;
+    } else {
+      // Create new progress
+      return await ctx.db.insert("exercise_progress", {
+        exerciseId,
+        userId: currentUser._id,
+        challengeId: exercise.challengeId,
+        completedReps,
+      });
+    }
+  },
+});
