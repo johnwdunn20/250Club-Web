@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
@@ -44,12 +44,14 @@ export default function FindFriends() {
   const rejectFriendRequest = useMutation(api.friendships.rejectFriendRequest);
   const removeFriend = useMutation(api.friendships.removeFriend);
 
-  // Debounced search
-  const debouncedSearchTerm = useMemo(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 300);
-    return () => clearTimeout(timer);
+  // Clear loading state after search
+  useEffect(() => {
+    if (searchTerm) {
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
   }, [searchTerm]);
 
   const handleSearch = (value: string) => {

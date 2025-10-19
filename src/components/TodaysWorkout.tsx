@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
-import { useAuth } from "@clerk/nextjs";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 
@@ -91,7 +90,7 @@ export default function TodaysWorkout() {
             No Challenge Today
           </h2>
           <p className="text-muted-foreground mb-6">
-            There's no active challenge scheduled for today. Create a new
+            There&apos;s no active challenge scheduled for today. Create a new
             challenge or check back tomorrow!
           </p>
           <button className="px-6 py-3 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary/90 transition-all shadow-md hover:shadow-lg hover:scale-105 active:scale-95">
