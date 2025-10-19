@@ -26,11 +26,33 @@ export const searchUsers = query({
       .withIndex("by_user", (q) => q.eq("userId", currentUser._id))
       .collect();
 
+    // Get existing friend requests to exclude
+    const existingRequests = await ctx.db
+      .query("friend_requests")
+      .withIndex("by_requester", (q) => q.eq("requesterId", currentUser._id))
+      .collect();
+
+    const sentRequestIds = new Set(existingRequests.map((r) => r.recipientId));
+
+    const existingRequestsToMe = await ctx.db
+      .query("friend_requests")
+      .withIndex("by_recipient", (q) => q.eq("recipientId", currentUser._id))
+      .collect();
+
+    const receivedRequestIds = new Set(
+      existingRequestsToMe.map((r) => r.requesterId)
+    );
+
     const friendIds = new Set(existingFriendships.map((f) => f.friendId));
 
-    // Return users that aren't already friends
+    // Return users that aren't already friends or have pending requests
     return matchingUsers
-      .filter((user) => !friendIds.has(user._id))
+      .filter(
+        (user) =>
+          !friendIds.has(user._id) &&
+          !sentRequestIds.has(user._id) &&
+          !receivedRequestIds.has(user._id)
+      )
       .slice(0, 10); // Limit to 10 results
   },
 });
@@ -41,12 +63,10 @@ export const getFriends = query({
   handler: async (ctx) => {
     const currentUser = await getCurrentUser(ctx);
 
-    // Get accepted friendships where current user is the userId
+    // Get friendships where current user is the userId
     const friendships = await ctx.db
       .query("friendships")
-      .withIndex("by_user", (q) =>
-        q.eq("userId", currentUser._id).eq("status", "accepted")
-      )
+      .withIndex("by_user", (q) => q.eq("userId", currentUser._id))
       .collect();
 
     // Get friend details
@@ -64,18 +84,16 @@ export const getFriends = query({
   },
 });
 
-// Get incoming pending requests (where friendId = current user)
+// Get incoming pending requests (where recipientId = current user)
 export const getPendingRequests = query({
   args: {},
   handler: async (ctx) => {
     const currentUser = await getCurrentUser(ctx);
 
-    // Get pending requests where current user is the friendId
+    // Get pending requests where current user is the recipientId
     const requests = await ctx.db
-      .query("friendships")
-      .withIndex("by_friend", (q) =>
-        q.eq("friendId", currentUser._id).eq("status", "pending")
-      )
+      .query("friend_requests")
+      .withIndex("by_recipient", (q) => q.eq("recipientId", currentUser._id))
       .collect();
 
     // Get requester details
@@ -93,27 +111,25 @@ export const getPendingRequests = query({
   },
 });
 
-// Get outgoing pending requests (where userId = current user)
+// Get outgoing pending requests (where requesterId = current user)
 export const getSentRequests = query({
   args: {},
   handler: async (ctx) => {
     const currentUser = await getCurrentUser(ctx);
 
-    // Get pending requests where current user is the userId
+    // Get pending requests where current user is the requesterId
     const requests = await ctx.db
-      .query("friendships")
-      .withIndex("by_user", (q) =>
-        q.eq("userId", currentUser._id).eq("status", "pending")
-      )
+      .query("friend_requests")
+      .withIndex("by_requester", (q) => q.eq("requesterId", currentUser._id))
       .collect();
 
-    // Get friend details
+    // Get recipient details
     const requestsWithUsers = await Promise.all(
       requests.map(async (request) => {
-        const friend = await ctx.db.get(request.friendId);
+        const recipient = await ctx.db.get(request.recipientId);
         return {
           ...request,
-          friend,
+          friend: recipient, // Keep same interface for compatibility
         };
       })
     );
@@ -142,9 +158,7 @@ export const sendFriendRequest = mutation({
     // Check if friendship already exists
     const existingFriendship = await ctx.db
       .query("friendships")
-      .withIndex("by_user", (q) =>
-        q.eq("userId", currentUser._id).eq("status", "pending")
-      )
+      .withIndex("by_user", (q) => q.eq("userId", currentUser._id))
       .filter((q) => q.eq(q.field("friendId"), friendId))
       .first();
 
@@ -152,13 +166,32 @@ export const sendFriendRequest = mutation({
       throw new Error("Friendship already exists");
     }
 
-    // Create only ONE friendship record (from requester to target)
-    // The symmetric record will be created when the request is accepted
-    await ctx.db.insert("friendships", {
-      userId: currentUser._id,
-      friendId: friendId,
-      status: "pending",
+    // Check if request already exists (both directions)
+    const existingRequest = await ctx.db
+      .query("friend_requests")
+      .withIndex("by_requester", (q) => q.eq("requesterId", currentUser._id))
+      .filter((q) => q.eq(q.field("recipientId"), friendId))
+      .first();
+
+    if (existingRequest) {
+      throw new Error("Friend request already sent");
+    }
+
+    const existingRequestToMe = await ctx.db
+      .query("friend_requests")
+      .withIndex("by_recipient", (q) => q.eq("recipientId", currentUser._id))
+      .filter((q) => q.eq(q.field("requesterId"), friendId))
+      .first();
+
+    if (existingRequestToMe) {
+      throw new Error("This user has already sent you a friend request");
+    }
+
+    // Create friend request
+    await ctx.db.insert("friend_requests", {
       requesterId: currentUser._id,
+      recipientId: friendId,
+      createdAt: Date.now(),
     });
 
     return { success: true };
@@ -167,33 +200,33 @@ export const sendFriendRequest = mutation({
 
 // Accept a friend request
 export const acceptFriendRequest = mutation({
-  args: { friendshipId: v.id("friendships") },
+  args: { friendshipId: v.id("friend_requests") },
   handler: async (ctx, { friendshipId }) => {
     const currentUser = await getCurrentUser(ctx);
 
-    // Get the friendship record
-    const friendship = await ctx.db.get(friendshipId);
-    if (!friendship) {
-      throw new Error("Friendship not found");
+    // Get the friend request record
+    const request = await ctx.db.get(friendshipId);
+    if (!request) {
+      throw new Error("Friend request not found");
     }
 
-    // Verify this is a pending request to the current user
-    if (
-      friendship.friendId !== currentUser._id ||
-      friendship.status !== "pending"
-    ) {
-      throw new Error("Invalid friendship request");
+    // Verify this is a request to the current user
+    if (request.recipientId !== currentUser._id) {
+      throw new Error("Invalid friend request");
     }
 
-    // Update the original request to accepted
-    await ctx.db.patch(friendshipId, { status: "accepted" });
+    // Delete the request
+    await ctx.db.delete(friendshipId);
 
-    // NOW create the symmetric record as accepted
+    // Create two symmetric friendship records
     await ctx.db.insert("friendships", {
-      userId: friendship.userId, // The original requester
+      userId: request.requesterId,
       friendId: currentUser._id,
-      status: "accepted",
-      requesterId: friendship.requesterId,
+    });
+
+    await ctx.db.insert("friendships", {
+      userId: currentUser._id,
+      friendId: request.requesterId,
     });
 
     return { success: true };
@@ -202,25 +235,22 @@ export const acceptFriendRequest = mutation({
 
 // Reject a friend request
 export const rejectFriendRequest = mutation({
-  args: { friendshipId: v.id("friendships") },
+  args: { friendshipId: v.id("friend_requests") },
   handler: async (ctx, { friendshipId }) => {
     const currentUser = await getCurrentUser(ctx);
 
-    // Get the friendship record
-    const friendship = await ctx.db.get(friendshipId);
-    if (!friendship) {
-      throw new Error("Friendship not found");
+    // Get the friend request record
+    const request = await ctx.db.get(friendshipId);
+    if (!request) {
+      throw new Error("Friend request not found");
     }
 
-    // Verify this is a pending request to the current user
-    if (
-      friendship.friendId !== currentUser._id ||
-      friendship.status !== "pending"
-    ) {
-      throw new Error("Invalid friendship request");
+    // Verify this is a request to the current user
+    if (request.recipientId !== currentUser._id) {
+      throw new Error("Invalid friend request");
     }
 
-    // Just delete the pending request (no symmetric record exists yet)
+    // Delete the request
     await ctx.db.delete(friendshipId);
 
     return { success: true };
@@ -233,29 +263,18 @@ export const removeFriend = mutation({
   handler: async (ctx, { friendId }) => {
     const currentUser = await getCurrentUser(ctx);
 
-    // Find both friendship records
-    const allFriendships = await ctx.db
+    // Find and delete both symmetric friendship records
+    const friendship1 = await ctx.db
       .query("friendships")
-      .filter((q) =>
-        q.or(
-          q.and(
-            q.eq(q.field("userId"), currentUser._id),
-            q.eq(q.field("friendId"), friendId)
-          ),
-          q.and(
-            q.eq(q.field("userId"), friendId),
-            q.eq(q.field("friendId"), currentUser._id)
-          )
-        )
-      )
-      .collect();
+      .withIndex("by_user", (q) => q.eq("userId", currentUser._id))
+      .filter((q) => q.eq(q.field("friendId"), friendId))
+      .first();
 
-    const friendship1 = allFriendships.find(
-      (f) => f.userId === currentUser._id && f.friendId === friendId
-    );
-    const friendship2 = allFriendships.find(
-      (f) => f.userId === friendId && f.friendId === currentUser._id
-    );
+    const friendship2 = await ctx.db
+      .query("friendships")
+      .withIndex("by_user", (q) => q.eq("userId", friendId))
+      .filter((q) => q.eq(q.field("friendId"), currentUser._id))
+      .first();
 
     // Delete both records if they exist
     if (friendship1) {

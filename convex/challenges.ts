@@ -69,12 +69,10 @@ export const createChallenge = mutation({
         throw new Error("One or more selected friends not found");
       }
 
-      // Check if friendship exists and is accepted
+      // Check if friendship exists
       const friendship = await ctx.db
         .query("friendships")
-        .withIndex("by_user", (q) =>
-          q.eq("userId", currentUser._id).eq("status", "accepted")
-        )
+        .withIndex("by_user", (q) => q.eq("userId", currentUser._id))
         .filter((q) => q.eq(q.field("friendId"), friendId))
         .first();
 

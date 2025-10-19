@@ -5,10 +5,29 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function FindFriends() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState<{
+    isOpen: boolean;
+    friendId: Id<"users"> | null;
+    friendName: string;
+  }>({
+    isOpen: false,
+    friendId: null,
+    friendName: "",
+  });
 
   // Convex queries
   const friends = useQuery(api.friendships.getFriends);
@@ -48,9 +67,9 @@ export default function FindFriends() {
     }
   };
 
-  const handleAcceptRequest = async (friendshipId: Id<"friendships">) => {
+  const handleAcceptRequest = async (requestId: Id<"friend_requests">) => {
     try {
-      await acceptFriendRequest({ friendshipId });
+      await acceptFriendRequest({ friendshipId: requestId });
       toast.success("Friend request accepted!");
     } catch (error) {
       console.error("Failed to accept friend request:", error);
@@ -58,9 +77,9 @@ export default function FindFriends() {
     }
   };
 
-  const handleRejectRequest = async (friendshipId: Id<"friendships">) => {
+  const handleRejectRequest = async (requestId: Id<"friend_requests">) => {
     try {
-      await rejectFriendRequest({ friendshipId });
+      await rejectFriendRequest({ friendshipId: requestId });
       toast.info("Friend request rejected");
     } catch (error) {
       console.error("Failed to reject friend request:", error);
@@ -68,13 +87,25 @@ export default function FindFriends() {
     }
   };
 
-  const handleRemoveFriend = async (friendId: Id<"users">) => {
+  const handleRemoveFriend = (friendId: Id<"users">, friendName: string) => {
+    setConfirmRemove({
+      isOpen: true,
+      friendId,
+      friendName,
+    });
+  };
+
+  const confirmRemoveFriend = async () => {
+    if (!confirmRemove.friendId) return;
+
     try {
-      await removeFriend({ friendId });
+      await removeFriend({ friendId: confirmRemove.friendId });
       toast.info("Friend removed");
     } catch (error) {
       console.error("Failed to remove friend:", error);
       toast.error("Failed to remove friend");
+    } finally {
+      setConfirmRemove({ isOpen: false, friendId: null, friendName: "" });
     }
   };
 
@@ -186,7 +217,12 @@ export default function FindFriends() {
                   </p>
                 </div>
                 <button
-                  onClick={() => handleRemoveFriend(friendship.friendId)}
+                  onClick={() =>
+                    handleRemoveFriend(
+                      friendship.friendId,
+                      friendship.friend?.name || "this friend"
+                    )
+                  }
                   className="px-3 py-1 bg-destructive text-destructive-foreground text-sm font-medium rounded-lg hover:bg-destructive/90 transition-colors"
                 >
                   Remove
@@ -291,6 +327,43 @@ export default function FindFriends() {
           )}
         </div>
       </div>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog
+        open={confirmRemove.isOpen}
+        onOpenChange={(open) =>
+          setConfirmRemove((prev) => ({ ...prev, isOpen: open }))
+        }
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Friend</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove {confirmRemove.friendName} from
+              your friends list? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() =>
+                setConfirmRemove({
+                  isOpen: false,
+                  friendId: null,
+                  friendName: "",
+                })
+              }
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmRemoveFriend}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

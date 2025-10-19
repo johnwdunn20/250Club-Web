@@ -8,18 +8,20 @@ export default defineSchema({
     email: v.optional(v.string()),
   }).index("by_token", ["tokenIdentifier"]),
 
+  friend_requests: defineTable({
+    requesterId: v.id("users"),
+    recipientId: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("by_requester", ["requesterId"])
+    .index("by_recipient", ["recipientId"]),
+
   friendships: defineTable({
     userId: v.id("users"),
     friendId: v.id("users"),
-    status: v.union(
-      v.literal("pending"),
-      v.literal("accepted"),
-      v.literal("rejected")
-    ),
-    requesterId: v.id("users"),
   })
-    .index("by_user", ["userId", "status"])
-    .index("by_friend", ["friendId", "status"]),
+    .index("by_user", ["userId"])
+    .index("by_friend", ["friendId"]),
 
   challenges: defineTable({
     name: v.string(),
