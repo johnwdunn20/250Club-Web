@@ -139,10 +139,8 @@ export const getUserChallenges = query({
 
     // Filter out null challenges and sort by date (newest first)
     return challenges
-      .filter((c) => c !== null)
-      .sort(
-        (a, b) => new Date(b!.date).getTime() - new Date(a!.date).getTime()
-      );
+      .filter((c): c is NonNullable<typeof c> => c !== null)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   },
 });
 

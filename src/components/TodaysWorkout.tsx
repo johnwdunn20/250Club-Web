@@ -30,6 +30,14 @@ export default function TodaysWorkout() {
     }
   }, [todaysChallenge]);
 
+  // Cleanup timeouts on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      // Clear all pending timeouts on unmount
+      Object.values(debounceTimeouts).forEach(clearTimeout);
+    };
+  }, [debounceTimeouts]);
+
   const handleRepChange = (exerciseId: Id<"exercises">, newValue: number) => {
     // Update local state immediately for responsive UI
     setLocalProgress((prev) => ({ ...prev, [exerciseId]: newValue }));
