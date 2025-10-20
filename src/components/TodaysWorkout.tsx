@@ -12,9 +12,7 @@ export default function TodaysWorkout() {
   const [localProgress, setLocalProgress] = useState<Record<string, number>>(
     {}
   );
-  const [debounceTimeouts, setDebounceTimeouts] = useState<
-    Record<string, NodeJS.Timeout>
-  >({});
+  const [throttleTimeouts, setThrottleTimeouts] = useState<Record<string, NodeJS.Timeout>>({});
 
   // Initialize local progress when data loads
   useEffect(() => {
@@ -30,29 +28,12 @@ export default function TodaysWorkout() {
     }
   }, [todaysChallenge]);
 
-  // Cleanup timeouts on unmount to prevent memory leaks
-  useEffect(() => {
-    return () => {
-      // Clear all pending timeouts on unmount
-      Object.values(debounceTimeouts).forEach(clearTimeout);
-    };
-  }, [debounceTimeouts]);
-
   const handleRepChange = (exerciseId: Id<"exercises">, newValue: number) => {
     // Update local state immediately for responsive UI
     setLocalProgress((prev) => ({ ...prev, [exerciseId]: newValue }));
 
-    // Clear existing timeout for this exercise
-    if (debounceTimeouts[exerciseId]) {
-      clearTimeout(debounceTimeouts[exerciseId]);
-    }
-
-    // Set new timeout to update backend
-    const timeout = setTimeout(() => {
-      updateProgress({ exerciseId, completedReps: newValue });
-    }, 500);
-
-    setDebounceTimeouts((prev) => ({ ...prev, [exerciseId]: timeout }));
+    // Update backend immediately
+    updateProgress({ exerciseId, completedReps: newValue });
   };
 
   const incrementReps = (exerciseId: Id<"exercises">) => {

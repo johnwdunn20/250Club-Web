@@ -1,7 +1,12 @@
 # TODO
 
-- Confirm Auth
-- Convex production tables not created
+- Sync appears to make things slow when you hammer the update button
+- Ability to enter numbers
+- Creating challenge
+- Challenge history
+- Have streak actually work
+- Ability to see next challenge
+- Progress bar should be divided by number of exercises
 
 # About
 
