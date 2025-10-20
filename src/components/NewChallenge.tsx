@@ -5,6 +5,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import { toast } from "sonner";
+import { Combobox, ComboboxOption } from "./ui/combobox";
 
 interface Exercise {
   name: string;
@@ -53,6 +54,12 @@ export default function NewChallenge() {
   )
     .toISOString()
     .split("T")[0];
+
+  // Date options for the combobox
+  const dateOptions: ComboboxOption[] = [
+    { value: "today", label: `Today (${today})` },
+    { value: "tomorrow", label: `Tomorrow (${tomorrow})` },
+  ];
 
   const handleAddExercise = () => {
     setExercises([...exercises, { name: "", targetReps: 0 }]);
@@ -157,30 +164,15 @@ export default function NewChallenge() {
             <label className="block text-sm font-medium text-foreground mb-2">
               Target Date
             </label>
-            <div className="flex gap-4">
-              <label className="flex items-center">
-                <input
-                  type="radio"
-                  name="date"
-                  value="today"
-                  checked={selectedDate === "today"}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="mr-2"
-                />
-                Today ({today})
-              </label>
-              <label className="flex items-center">
-                <input
-                  type="radio"
-                  name="date"
-                  value="tomorrow"
-                  checked={selectedDate === "tomorrow"}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="mr-2"
-                />
-                Tomorrow ({tomorrow})
-              </label>
-            </div>
+            <Combobox
+              options={dateOptions}
+              value={selectedDate}
+              onValueChange={setSelectedDate}
+              placeholder="Select target date..."
+              searchPlaceholder="Search dates..."
+              emptyText="No dates found."
+              className="w-full"
+            />
           </div>
 
           {/* Exercises */}
