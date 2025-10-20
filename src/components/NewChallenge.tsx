@@ -41,9 +41,17 @@ export default function NewChallenge() {
     );
   }, [friends, friendSearchTerm]);
 
-  // Get today's and tomorrow's date strings
-  const today = new Date().toISOString().split("T")[0];
-  const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000)
+  // Get today's and tomorrow's date strings in the current user's timezone
+  const now = new Date();
+  console.log(now);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    .toISOString()
+    .split("T")[0];
+  const tomorrow = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() + 1
+  )
     .toISOString()
     .split("T")[0];
 
