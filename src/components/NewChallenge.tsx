@@ -43,7 +43,6 @@ export default function NewChallenge() {
 
   // Get today's and tomorrow's date strings in the current user's timezone
   const now = new Date();
-  console.log(now);
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
     .toISOString()
     .split("T")[0];
