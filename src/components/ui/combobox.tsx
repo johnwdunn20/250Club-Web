@@ -29,7 +29,6 @@ export interface ComboboxProps {
   value?: string;
   onValueChange?: (value: string) => void;
   placeholder?: string;
-  searchPlaceholder?: string;
   emptyText?: string;
   className?: string;
   disabled?: boolean;
@@ -40,19 +39,28 @@ export function Combobox({
   value = "",
   onValueChange,
   placeholder = "Select option...",
-  searchPlaceholder = "Search...",
   emptyText = "No option found.",
   className,
   disabled = false,
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false);
+  const triggerRef = React.useRef<HTMLButtonElement>(null);
+  const [triggerWidth, setTriggerWidth] = React.useState<number | undefined>();
 
   const selectedOption = options.find((option) => option.value === value);
+
+  // Update trigger width when component mounts or opens
+  React.useEffect(() => {
+    if (triggerRef.current) {
+      setTriggerWidth(triggerRef.current.offsetWidth);
+    }
+  }, [open]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
+          ref={triggerRef}
           variant="outline"
           role="combobox"
           aria-expanded={open}
@@ -63,9 +71,12 @@ export function Combobox({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0" align="start">
+      <PopoverContent
+        className="p-0"
+        align="start"
+        style={{ width: triggerWidth }}
+      >
         <Command>
-          <CommandInput placeholder={searchPlaceholder} className="h-9" />
           <CommandList>
             <CommandEmpty>{emptyText}</CommandEmpty>
             <CommandGroup>

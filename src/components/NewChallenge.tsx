@@ -169,7 +169,6 @@ export default function NewChallenge() {
               value={selectedDate}
               onValueChange={setSelectedDate}
               placeholder="Select target date..."
-              searchPlaceholder="Search dates..."
               emptyText="No dates found."
               className="w-full"
             />
