@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { UserButton } from "@clerk/nextjs";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
 import TodaysWorkout from "./TodaysWorkout";
 import NewChallenge from "./NewChallenge";
 import FindFriends from "./FindFriends";
@@ -11,6 +14,7 @@ import { ThemeToggle } from "./ThemeToggle";
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("workout");
+  const unreadCount = useQuery(api.notifications.getUnreadCount);
 
   return (
     <div className="min-h-screen bg-background">
@@ -51,7 +55,17 @@ export default function Dashboard() {
                 <span className="hidden sm:inline">Friends</span>
               </TabsTrigger>
               <TabsTrigger value="notifications" className="flex items-center gap-2">
-                <span className="text-lg">🔔</span>
+                <div className="relative">
+                  <span className="text-lg">🔔</span>
+                  {unreadCount !== undefined && unreadCount > 0 && (
+                    <Badge
+                      variant="destructive"
+                      className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px]"
+                    >
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </Badge>
+                  )}
+                </div>
                 <span className="hidden sm:inline">Notifications</span>
               </TabsTrigger>
             </TabsList>

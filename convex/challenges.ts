@@ -1,6 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getCurrentUser, getTodayDateFromTimezone } from "./utils";
+import { internal } from "./_generated/api";
 
 // Create a new challenge with exercises and participants
 export const createChallenge = mutation({
@@ -84,6 +85,12 @@ export const createChallenge = mutation({
         challengeId,
         userId: friendId,
         status: "invited",
+      });
+
+      // Send notification to invited user
+      await ctx.scheduler.runAfter(0, internal.notifications.createNotification, {
+        userId: friendId,
+        message: `${currentUser.name} invited you to the challenge "${name.trim()}" on ${date}`,
       });
     }
 

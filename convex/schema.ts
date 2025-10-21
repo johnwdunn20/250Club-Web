@@ -64,4 +64,13 @@ export default defineSchema({
     .index("by_exercise_and_user", ["exerciseId", "userId"])
     .index("by_challenge_and_user", ["challengeId", "userId"])
     .index("by_exercise", ["exerciseId"]),
+
+  notifications: defineTable({
+    userId: v.id("users"),
+    message: v.string(),
+    isRead: v.boolean(),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_and_read", ["userId", "isRead"]),
 });
