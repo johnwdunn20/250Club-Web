@@ -212,7 +212,6 @@ export const getTodaysChallenge = query({
     const today = timezone
       ? getTodayDateFromTimezone(timezone)
       : new Date().toISOString().split("T")[0];
-    console.log("today", today);
 
     // Find challenges for today where user is a participant
     const participants = await ctx.db

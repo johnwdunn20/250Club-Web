@@ -11,7 +11,6 @@ export default function TodaysWorkout() {
   const todaysChallenge = useQuery(api.challenges.getTodaysChallenge, {
     timezone,
   });
-  console.log("todaysChallenge", todaysChallenge);
   const updateProgress = useMutation(api.challenges.updateExerciseProgress);
 
   const [localProgress, setLocalProgress] = useState<Record<string, number>>(
