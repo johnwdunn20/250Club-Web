@@ -6,6 +6,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import TodaysWorkout from "./TodaysWorkout";
 import NewChallenge from "./NewChallenge";
 import FindFriends from "./FindFriends";
+import Notifications from "./Notifications";
 import { ThemeToggle } from "./ThemeToggle";
 
 export default function Dashboard() {
@@ -36,18 +37,22 @@ export default function Dashboard() {
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <div className="flex justify-center mb-8">
-            <TabsList className="w-full sm:w-auto grid grid-cols-3 gap-2">
+            <TabsList className="w-full sm:w-auto grid grid-cols-4 gap-2">
               <TabsTrigger value="workout" className="flex items-center gap-2">
-                <span className="text-lg sm:block hidden">💪</span>
-                <span>Today</span>
+                <span className="text-lg">💪</span>
+                <span className="hidden sm:inline">Today</span>
               </TabsTrigger>
               <TabsTrigger value="challenge" className="flex items-center gap-2">
-                <span className="text-lg sm:block hidden">🎯</span>
-                <span>Challenge</span>
+                <span className="text-lg">🎯</span>
+                <span className="hidden sm:inline">Challenge</span>
               </TabsTrigger>
               <TabsTrigger value="friends" className="flex items-center gap-2">
-                <span className="text-lg sm:block hidden">👥</span>
-                <span>Friends</span>
+                <span className="text-lg">👥</span>
+                <span className="hidden sm:inline">Friends</span>
+              </TabsTrigger>
+              <TabsTrigger value="notifications" className="flex items-center gap-2">
+                <span className="text-lg">🔔</span>
+                <span className="hidden sm:inline">Notifications</span>
               </TabsTrigger>
             </TabsList>
           </div>
@@ -62,6 +67,10 @@ export default function Dashboard() {
 
           <TabsContent value="friends">
             <FindFriends />
+          </TabsContent>
+
+          <TabsContent value="notifications">
+            <Notifications />
           </TabsContent>
         </Tabs>
       </main>
