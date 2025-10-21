@@ -1,6 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { getCurrentUser } from "./utils";
+import { getCurrentUser, getTodayDateFromTimezone } from "./utils";
 
 // Create a new challenge with exercises and participants
 export const createChallenge = mutation({
@@ -204,12 +204,15 @@ export const getChallenge = query({
 
 // Get today's challenge for the current user
 export const getTodaysChallenge = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { timezone: v.optional(v.string()) },
+  handler: async (ctx, { timezone }) => {
     const currentUser = await getCurrentUser(ctx);
 
-    // Get today's date in YYYY-MM-DD format
-    const today = new Date().toISOString().split("T")[0];
+    // Get today's date in YYYY-MM-DD format (user's timezone if provided, otherwise UTC fallback)
+    const today = timezone
+      ? getTodayDateFromTimezone(timezone)
+      : new Date().toISOString().split("T")[0];
+    console.log("today", today);
 
     // Find challenges for today where user is a participant
     const participants = await ctx.db

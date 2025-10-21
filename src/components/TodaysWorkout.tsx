@@ -4,9 +4,14 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
+import { getUserTimezone } from "@/lib/utils";
 
 export default function TodaysWorkout() {
-  const todaysChallenge = useQuery(api.challenges.getTodaysChallenge);
+  const timezone = getUserTimezone();
+  const todaysChallenge = useQuery(api.challenges.getTodaysChallenge, {
+    timezone,
+  });
+  console.log("todaysChallenge", todaysChallenge);
   const updateProgress = useMutation(api.challenges.updateExerciseProgress);
 
   const [localProgress, setLocalProgress] = useState<Record<string, number>>(
