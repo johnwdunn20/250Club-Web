@@ -45,13 +45,43 @@ This is a **Next.js 15** application using the **App Router** pattern with **Con
 - Clerk middleware configured in `middleware.ts`
 - Convex-Clerk integration via `ConvexProviderWithClerk`
 - Auth configuration in `convex/auth.config.ts`
+- **User sync pattern**: Uses `useStoreUserEffect` hook (in `src/hooks/useStoreUserEffect.ts`) to automatically sync Clerk users to Convex database on authentication
+- All Convex functions requiring authentication should use the `getCurrentUser` utility from `convex/utils.ts`
 
 ### Key Directories
 - `src/app/` - Next.js App Router pages and layouts
 - `src/lib/` - Shared utilities (includes shadcn/ui `cn` helper)
 - `src/components/` - React components (includes `ConvexClientProvider`)
+- `src/hooks/` - Custom React hooks (includes `useStoreUserEffect`)
 - `convex/` - Convex backend functions and schema
 - `middleware.ts` - Clerk authentication middleware
+
+## Application Domain Model
+
+This is a **fitness challenge application** called "250 Club" where users create and participate in daily exercise challenges with friends.
+
+### Core Entities
+- **Users**: Authenticated via Clerk, synced to Convex with `tokenIdentifier` for lookups
+- **Friendships**: Bidirectional relationships between users (stored as two separate documents)
+- **Friend Requests**: Pending friendship invitations with requester/recipient
+- **Challenges**: Daily fitness challenges with a name, date, and exercises
+- **Exercises**: Individual exercises within a challenge (e.g., "Push-ups: 50 reps")
+- **Challenge Participants**: Join table linking users to challenges with status (invited/active/completed)
+- **Exercise Progress**: Tracks completed reps per user per exercise
+
+### Key Data Relationships
+- Each challenge has multiple exercises (ordered by `order` field)
+- Each challenge has multiple participants (creator is auto-active, others are invited)
+- Each user can track progress on each exercise in a challenge
+- Challenges are date-specific (YYYY-MM-DD format) and timezone-aware
+- The schema uses Convex indexes extensively for efficient queries (see `convex/schema.ts`)
+
+### Important Convex Files
+- `convex/schema.ts` - Database schema with all tables and indexes
+- `convex/users.ts` - User storage and syncing with Clerk
+- `convex/friendships.ts` - Friend request and friendship management
+- `convex/challenges.ts` - Challenge creation, querying, and progress tracking
+- `convex/utils.ts` - Shared utilities like `getCurrentUser()` and `getTodayDateFromTimezone()`
 
 ## Development Workflow
 
@@ -61,6 +91,7 @@ This is a **Next.js 15** application using the **App Router** pattern with **Con
 - Use the comprehensive Convex guidelines in `.cursor/rules/convex.mdc` for all database interactions
 - Schema defined in `convex/schema.ts`
 - Generated types available from `convex/_generated/`
+- **IMPORTANT**: Use `getCurrentUser(ctx)` from `convex/utils.ts` in all authenticated Convex functions (it handles auth checking and user lookup)
 
 ### Component Development
 - Uses shadcn/ui component patterns
@@ -80,6 +111,7 @@ This is a **Next.js 15** application using the **App Router** pattern with **Con
 - Always use new function syntax with `args` and `returns` validators
 - Use `internal` functions for private operations
 - Properly structure queries, mutations, and actions
+- **Always use `getCurrentUser(ctx)` instead of manually handling auth** - this utility from `convex/utils.ts` handles both authentication checking and user lookup
 
 ### Styling Guidelines
 - Tailwind CSS 4 is configured
@@ -105,3 +137,9 @@ This is a **Next.js 15** application using the **App Router** pattern with **Con
 - Authentication state is managed by Clerk's `useAuth` hook
 - Protected routes can be configured via Clerk middleware
 - User authentication flows handled by Clerk's built-in components
+- **User syncing**: The `useStoreUserEffect` hook automatically creates/updates Convex user records when users authenticate with Clerk
+
+### Timezone Handling
+- Challenges are date-specific and use YYYY-MM-DD format
+- Use `getTodayDateFromTimezone(timezone)` from `convex/utils.ts` for client timezone support
+- Pass user's timezone from the client when querying date-specific challenges (e.g., `getTodaysChallenge`)

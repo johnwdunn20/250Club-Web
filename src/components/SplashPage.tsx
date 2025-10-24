@@ -74,10 +74,7 @@ export default function SplashPage() {
         {/* CTA section */}
         <div className="pt-8 animate-fade-in-up delay-500">
           <SignInButton mode="modal">
-            <button
-              onClick={() => console.log("Get Started button clicked")}
-              className="group relative px-10 py-4 bg-primary text-primary-foreground text-lg font-bold rounded-lg hover:bg-primary/90 transition-all shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
-            >
+            <button className="group relative px-10 py-4 bg-primary text-primary-foreground text-lg font-bold rounded-lg hover:bg-primary/90 transition-all shadow-lg hover:shadow-xl hover:scale-105 active:scale-95">
               <span className="relative z-10">Get Started</span>
               <div className="absolute inset-0 bg-gradient-to-r from-primary via-accent to-primary opacity-0 group-hover:opacity-20 rounded-lg transition-opacity" />
             </button>

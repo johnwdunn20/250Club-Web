@@ -1,6 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { getCurrentUser } from "./utils";
+import { getCurrentUser, getTodayDateFromTimezone } from "./utils";
+import { internal } from "./_generated/api";
 
 // Create a new challenge with exercises and participants
 export const createChallenge = mutation({
@@ -84,6 +85,12 @@ export const createChallenge = mutation({
         challengeId,
         userId: friendId,
         status: "invited",
+      });
+
+      // Send notification to invited user
+      await ctx.scheduler.runAfter(0, internal.notifications.createNotification, {
+        userId: friendId,
+        message: `${currentUser.name} invited you to the challenge "${name.trim()}" on ${date}`,
       });
     }
 
@@ -202,14 +209,16 @@ export const getChallenge = query({
   },
 });
 
-// Get today's challenge for the current user
+// Get today's challenges for the current user
 export const getTodaysChallenge = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { timezone: v.optional(v.string()) },
+  handler: async (ctx, { timezone }) => {
     const currentUser = await getCurrentUser(ctx);
 
-    // Get today's date in YYYY-MM-DD format
-    const today = new Date().toISOString().split("T")[0];
+    // Get today's date in YYYY-MM-DD format (user's timezone if provided, otherwise UTC fallback)
+    const today = timezone
+      ? getTodayDateFromTimezone(timezone)
+      : new Date().toISOString().split("T")[0];
 
     // Find challenges for today where user is a participant
     const participants = await ctx.db
@@ -219,8 +228,8 @@ export const getTodaysChallenge = query({
 
     const challengeIds = participants.map((p) => p.challengeId);
 
-    // Find today's challenge
-    let todaysChallenge = null;
+    // Find all of today's challenges
+    const todaysChallenges = [];
     for (const challengeId of challengeIds) {
       const challenge = await ctx.db.get(challengeId);
       if (
@@ -228,92 +237,98 @@ export const getTodaysChallenge = query({
         challenge.date === today &&
         challenge.status === "active"
       ) {
-        todaysChallenge = challenge;
-        break;
+        todaysChallenges.push(challenge);
       }
     }
 
-    if (!todaysChallenge) {
+    if (todaysChallenges.length === 0) {
       return null;
     }
 
-    // Get exercises for this challenge
-    const exercises = await ctx.db
-      .query("exercises")
-      .withIndex("by_challenge", (q) =>
-        q.eq("challengeId", todaysChallenge._id)
-      )
-      .collect();
+    // Get details for each challenge
+    const challengesWithDetails = await Promise.all(
+      todaysChallenges.map(async (todaysChallenge) => {
+        // Get exercises for this challenge
+        const exercises = await ctx.db
+          .query("exercises")
+          .withIndex("by_challenge", (q) =>
+            q.eq("challengeId", todaysChallenge._id)
+          )
+          .collect();
 
-    // Get all participants
-    const allParticipants = await ctx.db
-      .query("challenge_participants")
-      .withIndex("by_challenge", (q) =>
-        q.eq("challengeId", todaysChallenge._id)
-      )
-      .collect();
+        // Get all participants
+        const allParticipants = await ctx.db
+          .query("challenge_participants")
+          .withIndex("by_challenge", (q) =>
+            q.eq("challengeId", todaysChallenge._id)
+          )
+          .collect();
 
-    // Get participant details with their progress
-    const participantsWithProgress = await Promise.all(
-      allParticipants.map(async (participant) => {
-        const user = await ctx.db.get(participant.userId);
+        // Get participant details with their progress
+        const participantsWithProgress = await Promise.all(
+          allParticipants.map(async (participant) => {
+            const user = await ctx.db.get(participant.userId);
 
-        // Get user's progress for each exercise
-        const exerciseProgress = await Promise.all(
-          exercises.map(async (exercise) => {
-            const progress = await ctx.db
-              .query("exercise_progress")
-              .withIndex("by_exercise_and_user", (q) =>
-                q
-                  .eq("exerciseId", exercise._id)
-                  .eq("userId", participant.userId)
-              )
-              .first();
+            // Get user's progress for each exercise
+            const exerciseProgress = await Promise.all(
+              exercises.map(async (exercise) => {
+                const progress = await ctx.db
+                  .query("exercise_progress")
+                  .withIndex("by_exercise_and_user", (q) =>
+                    q
+                      .eq("exerciseId", exercise._id)
+                      .eq("userId", participant.userId)
+                  )
+                  .first();
+
+                return {
+                  exerciseId: exercise._id,
+                  exerciseName: exercise.name,
+                  targetReps: exercise.targetReps,
+                  completedReps: progress?.completedReps || 0,
+                };
+              })
+            );
+
+            // Calculate totals
+            const totalCompleted = exerciseProgress.reduce(
+              (sum, ep) => sum + ep.completedReps,
+              0
+            );
+            const totalTarget = exerciseProgress.reduce(
+              (sum, ep) => sum + ep.targetReps,
+              0
+            );
+            const completionPercentage =
+              totalTarget > 0
+                ? Math.round((totalCompleted / totalTarget) * 100)
+                : 0;
 
             return {
-              exerciseId: exercise._id,
-              exerciseName: exercise.name,
-              targetReps: exercise.targetReps,
-              completedReps: progress?.completedReps || 0,
+              ...participant,
+              user,
+              exerciseProgress,
+              totalCompleted,
+              totalTarget,
+              completionPercentage,
             };
           })
         );
 
-        // Calculate totals
-        const totalCompleted = exerciseProgress.reduce(
-          (sum, ep) => sum + ep.completedReps,
-          0
-        );
-        const totalTarget = exerciseProgress.reduce(
-          (sum, ep) => sum + ep.targetReps,
-          0
-        );
-        const completionPercentage =
-          totalTarget > 0
-            ? Math.round((totalCompleted / totalTarget) * 100)
-            : 0;
+        // Get creator info
+        const creator = await ctx.db.get(todaysChallenge.creatorId);
 
         return {
-          ...participant,
-          user,
-          exerciseProgress,
-          totalCompleted,
-          totalTarget,
-          completionPercentage,
+          ...todaysChallenge,
+          exercises: exercises.sort((a, b) => a.order - b.order),
+          participants: participantsWithProgress,
+          creator,
+          currentUserId: currentUser._id,
         };
       })
     );
 
-    // Get creator info
-    const creator = await ctx.db.get(todaysChallenge.creatorId);
-
-    return {
-      ...todaysChallenge,
-      exercises: exercises.sort((a, b) => a.order - b.order),
-      participants: participantsWithProgress,
-      creator,
-      currentUserId: currentUser._id,
-    };
+    return challengesWithDetails;
   },
 });
 

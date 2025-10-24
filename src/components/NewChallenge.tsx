@@ -5,6 +5,8 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import { toast } from "sonner";
+import { Combobox, ComboboxOption } from "./ui/combobox";
+import { getTodayDate, getTomorrowDate, getUserTimezone } from "@/lib/utils";
 
 interface Exercise {
   name: string;
@@ -42,10 +44,14 @@ export default function NewChallenge() {
   }, [friends, friendSearchTerm]);
 
   // Get today's and tomorrow's date strings
-  const today = new Date().toISOString().split("T")[0];
-  const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000)
-    .toISOString()
-    .split("T")[0];
+  const today = getTodayDate();
+  const tomorrow = getTomorrowDate();
+
+  // Date options for the combobox
+  const dateOptions: ComboboxOption[] = [
+    { value: "today", label: `Today (${today})` },
+    { value: "tomorrow", label: `Tomorrow (${tomorrow})` },
+  ];
 
   const handleAddExercise = () => {
     setExercises([...exercises, { name: "", targetReps: 0 }]);
@@ -150,30 +156,14 @@ export default function NewChallenge() {
             <label className="block text-sm font-medium text-foreground mb-2">
               Target Date
             </label>
-            <div className="flex gap-4">
-              <label className="flex items-center">
-                <input
-                  type="radio"
-                  name="date"
-                  value="today"
-                  checked={selectedDate === "today"}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="mr-2"
-                />
-                Today ({today})
-              </label>
-              <label className="flex items-center">
-                <input
-                  type="radio"
-                  name="date"
-                  value="tomorrow"
-                  checked={selectedDate === "tomorrow"}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="mr-2"
-                />
-                Tomorrow ({tomorrow})
-              </label>
-            </div>
+            <Combobox
+              options={dateOptions}
+              value={selectedDate}
+              onValueChange={setSelectedDate}
+              placeholder="Select target date..."
+              emptyText="No dates found."
+              className="w-full"
+            />
           </div>
 
           {/* Exercises */}
