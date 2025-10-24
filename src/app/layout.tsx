@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "250 Club",
-  description: "250 Club Web Application",
+  description: "Your daily fitness challenge",
 };
 
 export default function RootLayout({
