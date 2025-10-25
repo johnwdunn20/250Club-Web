@@ -21,6 +21,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Code Quality
 
 - `pnpm lint` - Run ESLint for code linting
+- `pnpm format` - Format all files with Prettier
+- `pnpm format:check` - Check if files are formatted correctly
 
 ### Package Management
 
@@ -119,6 +121,12 @@ This is a **fitness challenge application** called "250 Club" where users create
 - Path aliasing: `@/*` maps to `src/*`
 
 ## Important Notes
+
+### Code Formatting
+
+- **IMPORTANT: Always run `pnpm format` after making code changes** to ensure consistent code formatting across the codebase
+- The project uses Prettier for code formatting with a shared configuration
+- Format command should be run before committing changes or creating pull requests
 
 ### Convex Function Guidelines
 
