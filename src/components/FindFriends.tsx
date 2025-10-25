@@ -15,18 +15,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-
-type Friends = NonNullable<ReturnType<typeof api.friendships.getFriends>>
-type PendingRequests = NonNullable<
-  ReturnType<typeof api.friendships.getPendingRequests>
->
-type SentRequests = NonNullable<
-  ReturnType<typeof api.friendships.getSentRequests>
->
+import type { Friends, FriendRequests, SentRequests } from "@/types/convex"
 
 interface FindFriendsProps {
   friends: Friends | undefined
-  pendingRequests: PendingRequests | undefined
+  pendingRequests: FriendRequests | undefined
   sentRequests: SentRequests | undefined
 }
 

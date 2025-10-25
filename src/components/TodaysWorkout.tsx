@@ -4,10 +4,7 @@ import { useState, useEffect } from "react"
 import { useMutation } from "convex/react"
 import { api } from "../../convex/_generated/api"
 import { Id } from "../../convex/_generated/dataModel"
-
-type TodaysChallenges = NonNullable<
-  ReturnType<typeof api.challenges.getTodaysChallenge>
->
+import type { TodaysChallenges } from "@/types/convex"
 
 interface TodaysWorkoutProps {
   todaysChallenges: TodaysChallenges | undefined

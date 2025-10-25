@@ -7,16 +7,12 @@ import { Id } from "../../convex/_generated/dataModel"
 import { toast } from "sonner"
 import { Combobox, ComboboxOption } from "./ui/combobox"
 import { getTodayDate, getTomorrowDate } from "@/lib/utils"
+import type { Friends, UserChallenges } from "@/types/convex"
 
 interface Exercise {
   name: string
   targetReps: number
 }
-
-type Friends = NonNullable<ReturnType<typeof api.friendships.getFriends>>
-type UserChallenges = NonNullable<
-  ReturnType<typeof api.challenges.getUserChallenges>
->
 
 interface NewChallengeProps {
   friends: Friends | undefined

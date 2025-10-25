@@ -5,10 +5,7 @@ import { Button } from "@/components/ui/button"
 import { useMutation } from "convex/react"
 import { api } from "../../convex/_generated/api"
 import { Id } from "../../convex/_generated/dataModel"
-
-type Notifications = NonNullable<
-  ReturnType<typeof api.notifications.getNotifications>
->
+import type { Notifications } from "@/types/convex"
 
 interface NotificationsProps {
   notifications: Notifications | undefined
