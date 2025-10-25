@@ -88,10 +88,16 @@ export const createChallenge = mutation({
       });
 
       // Send notification to invited user
-      await ctx.scheduler.runAfter(0, internal.notifications.createNotification, {
-        userId: friendId,
-        message: `${currentUser.name} invited you to the challenge "${name.trim()}" on ${date}`,
-      });
+      await ctx.scheduler.runAfter(
+        0,
+        internal.notifications.createNotification,
+        {
+          userId: friendId,
+          message: `${
+            currentUser.name
+          } invited you to the challenge "${name.trim()}" on ${date}`,
+        }
+      );
     }
 
     return { challengeId, exerciseIds };

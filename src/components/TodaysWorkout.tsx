@@ -141,12 +141,15 @@ export default function TodaysWorkout() {
                     {todaysChallenge.name}
                   </h2>
                   <p className="text-sm text-muted-foreground">
-                    {new Date(todaysChallenge.date).toLocaleDateString("en-US", {
-                      weekday: "long",
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
+                    {new Date(todaysChallenge.date).toLocaleDateString(
+                      "en-US",
+                      {
+                        weekday: "long",
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      }
+                    )}
                   </p>
                 </div>
                 <div className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-semibold">
@@ -225,10 +228,13 @@ export default function TodaysWorkout() {
 
             {/* Participants leaderboard */}
             <div className="card-mobile">
-              <h3 className="text-xl font-bold text-foreground mb-4">Participants</h3>
+              <h3 className="text-xl font-bold text-foreground mb-4">
+                Participants
+              </h3>
               <div className="space-y-3">
                 {sortedParticipants.map((participant, index) => {
-                  const isCurrentUser = participant.userId === currentUser?.userId;
+                  const isCurrentUser =
+                    participant.userId === currentUser?.userId;
                   const isCompleted = participant.completionPercentage === 100;
 
                   return (
@@ -252,8 +258,8 @@ export default function TodaysWorkout() {
                             )}
                           </div>
                           <div className="text-sm text-muted-foreground">
-                            {participant.totalCompleted} / {participant.totalTarget}{" "}
-                            reps
+                            {participant.totalCompleted} /{" "}
+                            {participant.totalTarget} reps
                           </div>
                         </div>
                       </div>

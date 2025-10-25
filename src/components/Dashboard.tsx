@@ -46,7 +46,10 @@ export default function Dashboard() {
                 <span className="text-lg">💪</span>
                 <span className="hidden sm:inline">Today</span>
               </TabsTrigger>
-              <TabsTrigger value="challenge" className="flex items-center gap-2">
+              <TabsTrigger
+                value="challenge"
+                className="flex items-center gap-2"
+              >
                 <span className="text-lg">🎯</span>
                 <span className="hidden sm:inline">Challenge</span>
               </TabsTrigger>
@@ -54,7 +57,10 @@ export default function Dashboard() {
                 <span className="text-lg">👥</span>
                 <span className="hidden sm:inline">Friends</span>
               </TabsTrigger>
-              <TabsTrigger value="notifications" className="flex items-center gap-2">
+              <TabsTrigger
+                value="notifications"
+                className="flex items-center gap-2"
+              >
                 <div className="relative">
                   <span className="text-lg">🔔</span>
                   {unreadCount !== undefined && unreadCount > 0 && (
