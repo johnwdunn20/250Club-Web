@@ -15,6 +15,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  UserListItemSkeleton,
+  FriendsListSkeleton,
+  PendingRequestsSkeleton,
+  SentRequestsSkeleton,
+} from "@/components/skeletons/UserListSkeleton";
 
 export default function FindFriends() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -153,14 +159,8 @@ export default function FindFriends() {
             </h3>
             {isLoading ? (
               <div className="space-y-2">
-                {[...Array(3)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="p-4 bg-muted/30 rounded-lg border border-border animate-pulse"
-                  >
-                    <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
-                    <div className="h-3 bg-muted rounded w-1/2"></div>
-                  </div>
+                {[1, 2, 3].map((i) => (
+                  <UserListItemSkeleton key={i} />
                 ))}
               </div>
             ) : searchResults && searchResults.length > 0 ? (
@@ -195,16 +195,19 @@ export default function FindFriends() {
       </div>
 
       {/* Friends list */}
-      <div className="card-mobile">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-bold text-foreground">Your Friends</h3>
-          <span className="text-sm text-muted-foreground">
-            {friends ? `${friends.length} friends` : "Loading..."}
-          </span>
-        </div>
+      {friends === undefined ? (
+        <FriendsListSkeleton />
+      ) : (
+        <div className="card-mobile">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-bold text-foreground">Your Friends</h3>
+            <span className="text-sm text-muted-foreground">
+              {friends.length} friends
+            </span>
+          </div>
 
-        <div className="space-y-3">
-          {friends && friends.length > 0 ? (
+          <div className="space-y-3">
+            {friends.length > 0 ? (
             friends.map((friendship) => (
               <div
                 key={friendship._id}
@@ -239,21 +242,25 @@ export default function FindFriends() {
               </p>
             </div>
           )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Pending requests */}
-      <div className="card-mobile">
-        <h3 className="text-xl font-bold text-foreground mb-4">
-          Pending Requests
-          {pendingRequests && pendingRequests.length > 0 && (
-            <span className="ml-2 px-2 py-1 bg-primary text-primary-foreground text-xs font-medium rounded-full">
-              {pendingRequests.length}
-            </span>
-          )}
-        </h3>
-        <div className="space-y-3">
-          {pendingRequests && pendingRequests.length > 0 ? (
+      {pendingRequests === undefined ? (
+        <PendingRequestsSkeleton />
+      ) : (
+        <div className="card-mobile">
+          <h3 className="text-xl font-bold text-foreground mb-4">
+            Pending Requests
+            {pendingRequests.length > 0 && (
+              <span className="ml-2 px-2 py-1 bg-primary text-primary-foreground text-xs font-medium rounded-full">
+                {pendingRequests.length}
+              </span>
+            )}
+          </h3>
+          <div className="space-y-3">
+            {pendingRequests.length > 0 ? (
             pendingRequests.map((request) => (
               <div
                 key={request._id}
@@ -292,16 +299,20 @@ export default function FindFriends() {
               </p>
             </div>
           )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Sent requests */}
-      <div className="card-mobile">
-        <h3 className="text-xl font-bold text-foreground mb-4">
-          Sent Requests
-        </h3>
-        <div className="space-y-3">
-          {sentRequests && sentRequests.length > 0 ? (
+      {sentRequests === undefined ? (
+        <SentRequestsSkeleton />
+      ) : (
+        <div className="card-mobile">
+          <h3 className="text-xl font-bold text-foreground mb-4">
+            Sent Requests
+          </h3>
+          <div className="space-y-3">
+            {sentRequests.length > 0 ? (
             sentRequests.map((request) => (
               <div
                 key={request._id}
@@ -327,8 +338,9 @@ export default function FindFriends() {
               </p>
             </div>
           )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Confirmation Dialog */}
       <AlertDialog

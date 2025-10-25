@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
+import { NotificationsLoadingSkeleton } from "@/components/skeletons/NotificationCardSkeleton";
 
 export default function Notifications() {
   const notifications = useQuery(api.notifications.getNotifications);
@@ -20,16 +21,7 @@ export default function Notifications() {
   };
 
   if (notifications === undefined) {
-    return (
-      <div className="space-y-6">
-        <Card className="p-6">
-          <div className="text-center py-12">
-            <span className="text-6xl mb-4 block">🔔</span>
-            <p className="text-muted-foreground">Loading notifications...</p>
-          </div>
-        </Card>
-      </div>
-    );
+    return <NotificationsLoadingSkeleton />;
   }
 
   if (notifications.length === 0) {
