@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
-import { NotificationsLoadingSkeleton } from "@/components/skeletons/NotificationCardSkeleton";
 
 export default function Notifications() {
   const notifications = useQuery(api.notifications.getNotifications);
@@ -21,18 +20,19 @@ export default function Notifications() {
   };
 
   if (notifications === undefined) {
-    return <NotificationsLoadingSkeleton />;
+    return null;
   }
 
   if (notifications.length === 0) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 animate-fade-in-up">
         <Card className="p-6">
           <div className="text-center py-12">
             <span className="text-6xl mb-4 block">🔔</span>
             <h2 className="text-xl font-semibold mb-2">No notifications yet</h2>
             <p className="text-muted-foreground">
-              You&apos;ll see friend requests, challenge invites, and updates here
+              You&apos;ll see friend requests, challenge invites, and updates
+              here
             </p>
           </div>
         </Card>
@@ -43,7 +43,7 @@ export default function Notifications() {
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in-up">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Notifications</h1>
         {unreadCount > 0 && (
