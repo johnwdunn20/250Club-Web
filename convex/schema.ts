@@ -1,5 +1,5 @@
-import { defineTable, defineSchema } from "convex/server";
-import { v } from "convex/values";
+import { defineTable, defineSchema } from "convex/server"
+import { v } from "convex/values"
 
 export default defineSchema({
   users: defineTable({
@@ -73,4 +73,4 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_and_read", ["userId", "isRead"]),
-});
+})

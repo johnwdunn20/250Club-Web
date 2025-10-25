@@ -1,10 +1,10 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
-import { Id } from "../../convex/_generated/dataModel";
-import { toast } from "sonner";
+import { useState, useEffect } from "react"
+import { useQuery, useMutation } from "convex/react"
+import { api } from "../../convex/_generated/api"
+import { Id } from "../../convex/_generated/dataModel"
+import { toast } from "sonner"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,20 +14,20 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@/components/ui/alert-dialog"
 
-type Friends = NonNullable<ReturnType<typeof api.friendships.getFriends>>;
+type Friends = NonNullable<ReturnType<typeof api.friendships.getFriends>>
 type PendingRequests = NonNullable<
   ReturnType<typeof api.friendships.getPendingRequests>
->;
+>
 type SentRequests = NonNullable<
   ReturnType<typeof api.friendships.getSentRequests>
->;
+>
 
 interface FindFriendsProps {
-  friends: Friends | undefined;
-  pendingRequests: PendingRequests | undefined;
-  sentRequests: SentRequests | undefined;
+  friends: Friends | undefined
+  pendingRequests: PendingRequests | undefined
+  sentRequests: SentRequests | undefined
 }
 
 export default function FindFriends({
@@ -35,96 +35,96 @@ export default function FindFriends({
   pendingRequests,
   sentRequests,
 }: FindFriendsProps) {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
   const [confirmRemove, setConfirmRemove] = useState<{
-    isOpen: boolean;
-    friendId: Id<"users"> | null;
-    friendName: string;
+    isOpen: boolean
+    friendId: Id<"users"> | null
+    friendName: string
   }>({
     isOpen: false,
     friendId: null,
     friendName: "",
-  });
+  })
 
   // Dynamic query for search results (kept in component since it's user-driven)
   const searchResults = useQuery(
     api.friendships.searchUsers,
     searchTerm.trim() ? { searchTerm: searchTerm.trim() } : "skip"
-  );
+  )
 
   // Convex mutations
-  const sendFriendRequest = useMutation(api.friendships.sendFriendRequest);
-  const acceptFriendRequest = useMutation(api.friendships.acceptFriendRequest);
-  const rejectFriendRequest = useMutation(api.friendships.rejectFriendRequest);
-  const removeFriend = useMutation(api.friendships.removeFriend);
+  const sendFriendRequest = useMutation(api.friendships.sendFriendRequest)
+  const acceptFriendRequest = useMutation(api.friendships.acceptFriendRequest)
+  const rejectFriendRequest = useMutation(api.friendships.rejectFriendRequest)
+  const removeFriend = useMutation(api.friendships.removeFriend)
 
   // Clear loading state after search
   useEffect(() => {
     if (searchTerm) {
       const timer = setTimeout(() => {
-        setIsLoading(false);
-      }, 300);
-      return () => clearTimeout(timer);
+        setIsLoading(false)
+      }, 300)
+      return () => clearTimeout(timer)
     }
-  }, [searchTerm]);
+  }, [searchTerm])
 
   const handleSearch = (value: string) => {
-    setSearchTerm(value);
-    setIsLoading(true);
-  };
+    setSearchTerm(value)
+    setIsLoading(true)
+  }
 
   const handleSendFriendRequest = async (friendId: Id<"users">) => {
     try {
-      await sendFriendRequest({ friendId });
-      toast.success("Friend request sent!");
+      await sendFriendRequest({ friendId })
+      toast.success("Friend request sent!")
     } catch (error) {
-      console.error("Failed to send friend request:", error);
-      toast.error("Failed to send friend request");
+      console.error("Failed to send friend request:", error)
+      toast.error("Failed to send friend request")
     }
-  };
+  }
 
   const handleAcceptRequest = async (requestId: Id<"friend_requests">) => {
     try {
-      await acceptFriendRequest({ friendshipId: requestId });
-      toast.success("Friend request accepted!");
+      await acceptFriendRequest({ friendshipId: requestId })
+      toast.success("Friend request accepted!")
     } catch (error) {
-      console.error("Failed to accept friend request:", error);
-      toast.error("Failed to accept friend request");
+      console.error("Failed to accept friend request:", error)
+      toast.error("Failed to accept friend request")
     }
-  };
+  }
 
   const handleRejectRequest = async (requestId: Id<"friend_requests">) => {
     try {
-      await rejectFriendRequest({ friendshipId: requestId });
-      toast.info("Friend request rejected");
+      await rejectFriendRequest({ friendshipId: requestId })
+      toast.info("Friend request rejected")
     } catch (error) {
-      console.error("Failed to reject friend request:", error);
-      toast.error("Failed to reject friend request");
+      console.error("Failed to reject friend request:", error)
+      toast.error("Failed to reject friend request")
     }
-  };
+  }
 
   const handleRemoveFriend = (friendId: Id<"users">, friendName: string) => {
     setConfirmRemove({
       isOpen: true,
       friendId,
       friendName,
-    });
-  };
+    })
+  }
 
   const confirmRemoveFriend = async () => {
-    if (!confirmRemove.friendId) return;
+    if (!confirmRemove.friendId) return
 
     try {
-      await removeFriend({ friendId: confirmRemove.friendId });
-      toast.info("Friend removed");
+      await removeFriend({ friendId: confirmRemove.friendId })
+      toast.info("Friend removed")
     } catch (error) {
-      console.error("Failed to remove friend:", error);
-      toast.error("Failed to remove friend");
+      console.error("Failed to remove friend:", error)
+      toast.error("Failed to remove friend")
     } finally {
-      setConfirmRemove({ isOpen: false, friendId: null, friendName: "" });
+      setConfirmRemove({ isOpen: false, friendId: null, friendName: "" })
     }
-  };
+  }
 
   return (
     <div className="space-y-6">
@@ -142,7 +142,7 @@ export default function FindFriends({
             type="text"
             placeholder="Search by username or email..."
             value={searchTerm}
-            onChange={(e) => handleSearch(e.target.value)}
+            onChange={e => handleSearch(e.target.value)}
             className="w-full px-4 py-3 pl-10 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground placeholder:text-muted-foreground"
           />
           <svg
@@ -180,7 +180,7 @@ export default function FindFriends({
               </div>
             ) : searchResults && searchResults.length > 0 ? (
               <div className="space-y-2">
-                {searchResults.map((user) => (
+                {searchResults.map(user => (
                   <div
                     key={user._id}
                     className="p-4 bg-muted/30 rounded-lg border border-border flex items-center justify-between"
@@ -220,7 +220,7 @@ export default function FindFriends({
 
         <div className="space-y-3">
           {friends && friends.length > 0 ? (
-            friends.map((friendship) => (
+            friends.map(friendship => (
               <div
                 key={friendship._id}
                 className="p-4 bg-muted/30 rounded-lg border border-border flex items-center justify-between"
@@ -269,7 +269,7 @@ export default function FindFriends({
         </h3>
         <div className="space-y-3">
           {pendingRequests && pendingRequests.length > 0 ? (
-            pendingRequests.map((request) => (
+            pendingRequests.map(request => (
               <div
                 key={request._id}
                 className="p-4 bg-muted/30 rounded-lg border border-border"
@@ -317,7 +317,7 @@ export default function FindFriends({
         </h3>
         <div className="space-y-3">
           {sentRequests && sentRequests.length > 0 ? (
-            sentRequests.map((request) => (
+            sentRequests.map(request => (
               <div
                 key={request._id}
                 className="p-4 bg-muted/30 rounded-lg border border-border flex items-center justify-between"
@@ -348,8 +348,8 @@ export default function FindFriends({
       {/* Confirmation Dialog */}
       <AlertDialog
         open={confirmRemove.isOpen}
-        onOpenChange={(open) =>
-          setConfirmRemove((prev) => ({ ...prev, isOpen: open }))
+        onOpenChange={open =>
+          setConfirmRemove(prev => ({ ...prev, isOpen: open }))
         }
       >
         <AlertDialogContent>
@@ -382,5 +382,5 @@ export default function FindFriends({
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  );
+  )
 }

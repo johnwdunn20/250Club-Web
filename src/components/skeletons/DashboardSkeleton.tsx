@@ -1,4 +1,4 @@
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@/components/ui/skeleton"
 
 export function DashboardSkeleton() {
   return (
@@ -34,7 +34,7 @@ export function DashboardSkeleton() {
 
             {/* Exercise cards grid skeleton */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-              {[1, 2, 3, 4].map((i) => (
+              {[1, 2, 3, 4].map(i => (
                 <Skeleton key={i} className="h-20 rounded-lg" />
               ))}
             </div>
@@ -48,5 +48,5 @@ export function DashboardSkeleton() {
         </div>
       </main>
     </div>
-  );
+  )
 }

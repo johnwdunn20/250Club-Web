@@ -1,33 +1,33 @@
-"use client";
+"use client"
 
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
-import { Id } from "../../convex/_generated/dataModel";
+import { Card } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { useMutation } from "convex/react"
+import { api } from "../../convex/_generated/api"
+import { Id } from "../../convex/_generated/dataModel"
 
 type Notifications = NonNullable<
   ReturnType<typeof api.notifications.getNotifications>
->;
+>
 
 interface NotificationsProps {
-  notifications: Notifications | undefined;
+  notifications: Notifications | undefined
 }
 
 export default function Notifications({ notifications }: NotificationsProps) {
-  const markAsRead = useMutation(api.notifications.markAsRead);
-  const markAllAsRead = useMutation(api.notifications.markAllAsRead);
+  const markAsRead = useMutation(api.notifications.markAsRead)
+  const markAllAsRead = useMutation(api.notifications.markAllAsRead)
 
   const handleMarkAsRead = async (notificationId: Id<"notifications">) => {
-    await markAsRead({ notificationId });
-  };
+    await markAsRead({ notificationId })
+  }
 
   const handleMarkAllAsRead = async () => {
-    await markAllAsRead({});
-  };
+    await markAllAsRead({})
+  }
 
   if (notifications === undefined) {
-    return null;
+    return null
   }
 
   if (notifications.length === 0) {
@@ -44,10 +44,10 @@ export default function Notifications({ notifications }: NotificationsProps) {
           </div>
         </Card>
       </div>
-    );
+    )
   }
 
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
+  const unreadCount = notifications.filter(n => !n.isRead).length
 
   return (
     <div className="space-y-6 animate-fade-in-up">
@@ -61,7 +61,7 @@ export default function Notifications({ notifications }: NotificationsProps) {
       </div>
 
       <div className="space-y-3">
-        {notifications.map((notification) => (
+        {notifications.map(notification => (
           <Card
             key={notification._id}
             className={`p-4 ${
@@ -90,5 +90,5 @@ export default function Notifications({ notifications }: NotificationsProps) {
         ))}
       </div>
     </div>
-  );
+  )
 }

@@ -1,4 +1,4 @@
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@/components/ui/skeleton"
 
 export function NotificationCardSkeleton() {
   return (
@@ -11,7 +11,7 @@ export function NotificationCardSkeleton() {
         <Skeleton className="h-8 w-24 shrink-0" />
       </div>
     </div>
-  );
+  )
 }
 
 export function NotificationsLoadingSkeleton() {
@@ -23,10 +23,10 @@ export function NotificationsLoadingSkeleton() {
       </div>
 
       <div className="space-y-3">
-        {[1, 2, 3, 4, 5].map((i) => (
+        {[1, 2, 3, 4, 5].map(i => (
           <NotificationCardSkeleton key={i} />
         ))}
       </div>
     </div>
-  );
+  )
 }

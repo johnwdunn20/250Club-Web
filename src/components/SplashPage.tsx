@@ -1,5 +1,5 @@
-import { SignInButton } from "@clerk/nextjs";
-import { ThemeToggle } from "./ThemeToggle";
+import { SignInButton } from "@clerk/nextjs"
+import { ThemeToggle } from "./ThemeToggle"
 
 export default function SplashPage() {
   return (
@@ -88,5 +88,5 @@ export default function SplashPage() {
       {/* Bottom decoration */}
       <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent" />
     </div>
-  );
+  )
 }

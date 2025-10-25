@@ -1,32 +1,32 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { UserButton } from "@clerk/nextjs";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
-import { getUserTimezone } from "@/lib/utils";
-import TodaysWorkout from "./TodaysWorkout";
-import NewChallenge from "./NewChallenge";
-import FindFriends from "./FindFriends";
-import Notifications from "./Notifications";
-import { ThemeToggle } from "./ThemeToggle";
+import { useState } from "react"
+import { UserButton } from "@clerk/nextjs"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
+import { useQuery } from "convex/react"
+import { api } from "../../convex/_generated/api"
+import { getUserTimezone } from "@/lib/utils"
+import TodaysWorkout from "./TodaysWorkout"
+import NewChallenge from "./NewChallenge"
+import FindFriends from "./FindFriends"
+import Notifications from "./Notifications"
+import { ThemeToggle } from "./ThemeToggle"
 
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState("workout");
+  const [activeTab, setActiveTab] = useState("workout")
 
   // Preload all data for instant tab switching
-  const timezone = getUserTimezone();
-  const unreadCount = useQuery(api.notifications.getUnreadCount);
+  const timezone = getUserTimezone()
+  const unreadCount = useQuery(api.notifications.getUnreadCount)
   const todaysChallenges = useQuery(api.challenges.getTodaysChallenge, {
     timezone,
-  });
-  const userChallenges = useQuery(api.challenges.getUserChallenges);
-  const friends = useQuery(api.friendships.getFriends);
-  const pendingRequests = useQuery(api.friendships.getPendingRequests);
-  const sentRequests = useQuery(api.friendships.getSentRequests);
-  const notifications = useQuery(api.notifications.getNotifications);
+  })
+  const userChallenges = useQuery(api.challenges.getUserChallenges)
+  const friends = useQuery(api.friendships.getFriends)
+  const pendingRequests = useQuery(api.friendships.getPendingRequests)
+  const sentRequests = useQuery(api.friendships.getSentRequests)
+  const notifications = useQuery(api.notifications.getNotifications)
 
   return (
     <div className="min-h-screen bg-background">
@@ -111,5 +111,5 @@ export default function Dashboard() {
         </Tabs>
       </main>
     </div>
-  );
+  )
 }

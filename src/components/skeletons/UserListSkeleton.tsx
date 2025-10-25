@@ -1,4 +1,4 @@
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@/components/ui/skeleton"
 
 export function UserListItemSkeleton() {
   return (
@@ -11,7 +11,7 @@ export function UserListItemSkeleton() {
         <Skeleton className="h-9 w-20" />
       </div>
     </div>
-  );
+  )
 }
 
 export function FriendRequestItemSkeleton() {
@@ -28,7 +28,7 @@ export function FriendRequestItemSkeleton() {
         <Skeleton className="h-9 flex-1" />
       </div>
     </div>
-  );
+  )
 }
 
 export function FriendsListSkeleton() {
@@ -39,12 +39,12 @@ export function FriendsListSkeleton() {
         <Skeleton className="h-5 w-20" />
       </div>
       <div className="space-y-3">
-        {[1, 2, 3].map((i) => (
+        {[1, 2, 3].map(i => (
           <UserListItemSkeleton key={i} />
         ))}
       </div>
     </div>
-  );
+  )
 }
 
 export function PendingRequestsSkeleton() {
@@ -52,12 +52,12 @@ export function PendingRequestsSkeleton() {
     <div className="card-mobile">
       <Skeleton className="h-7 w-40 mb-4" />
       <div className="space-y-3">
-        {[1, 2].map((i) => (
+        {[1, 2].map(i => (
           <FriendRequestItemSkeleton key={i} />
         ))}
       </div>
     </div>
-  );
+  )
 }
 
 export function SentRequestsSkeleton() {
@@ -65,10 +65,10 @@ export function SentRequestsSkeleton() {
     <div className="card-mobile">
       <Skeleton className="h-7 w-32 mb-4" />
       <div className="space-y-3">
-        {[1, 2].map((i) => (
+        {[1, 2].map(i => (
           <UserListItemSkeleton key={i} />
         ))}
       </div>
     </div>
-  );
+  )
 }
