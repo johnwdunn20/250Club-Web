@@ -73,31 +73,10 @@ export default function TodaysWorkout({
     }
   }
 
-  // Loading state
-  if (todaysChallenges === undefined) {
-    return (
-      <div className="space-y-6">
-        <div className="card-mobile">
-          <div className="animate-pulse">
-            <div className="h-8 bg-muted rounded mb-4"></div>
-            <div className="h-4 bg-muted rounded mb-6"></div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-              {[1, 2, 3, 4].map(i => (
-                <div key={i} className="h-20 bg-muted rounded-lg"></div>
-              ))}
-            </div>
-            <div className="h-3 bg-muted rounded mb-6"></div>
-            <div className="h-12 bg-muted rounded"></div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   // No challenge today
   if (!todaysChallenges || todaysChallenges.length === 0) {
     return (
-      <div className="space-y-6 animate-fade-in-up">
+      <div className="space-y-6">
         <div className="card-mobile text-center">
           <div className="text-6xl mb-4">📅</div>
           <h2 className="text-2xl font-bold text-foreground mb-2">
@@ -107,16 +86,13 @@ export default function TodaysWorkout({
             There&apos;s no active challenge scheduled for today. Create a new
             challenge or check back tomorrow!
           </p>
-          <button className="px-6 py-3 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary/90 transition-all shadow-md hover:shadow-lg hover:scale-105 active:scale-95">
-            Create Challenge
-          </button>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
+    <div className="space-y-6">
       {/* Render each challenge */}
       {todaysChallenges.map(todaysChallenge => {
         // Find current user's progress for this challenge
