@@ -101,7 +101,21 @@ export default function TodaysWorkout({
         )
         const userTotalCompleted = currentUser?.totalCompleted || 0
         const userTotalTarget = currentUser?.totalTarget || 0
-        const userCompletionPercentage = currentUser?.completionPercentage || 0
+
+        // Calculate completion percentage by averaging individual exercise completion rates
+        const exerciseCount = todaysChallenge.exercises.length
+        const userCompletionPercentage = exerciseCount > 0
+          ? Math.round(
+              todaysChallenge.exercises.reduce((sum, exercise) => {
+                const completedReps = localProgress[exercise._id] || 0
+                const exercisePercentage = Math.min(
+                  (completedReps / exercise.targetReps) * 100,
+                  100
+                )
+                return sum + exercisePercentage
+              }, 0) / exerciseCount
+            )
+          : 0
 
         // Sort participants by total completed (descending)
         const sortedParticipants = [...todaysChallenge.participants].sort(
