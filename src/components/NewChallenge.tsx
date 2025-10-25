@@ -13,9 +13,14 @@ interface Exercise {
   targetReps: number;
 }
 
+type Friends = NonNullable<ReturnType<typeof api.friendships.getFriends>>;
+type UserChallenges = NonNullable<
+  ReturnType<typeof api.challenges.getUserChallenges>
+>;
+
 interface NewChallengeProps {
-  friends: any; // Will be properly typed by Convex
-  userChallenges: any; // Will be properly typed by Convex
+  friends: Friends | undefined;
+  userChallenges: UserChallenges | undefined;
 }
 
 export default function NewChallenge({

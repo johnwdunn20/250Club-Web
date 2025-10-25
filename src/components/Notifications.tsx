@@ -6,8 +6,12 @@ import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 
+type Notifications = NonNullable<
+  ReturnType<typeof api.notifications.getNotifications>
+>;
+
 interface NotificationsProps {
-  notifications: any; // Will be properly typed by Convex
+  notifications: Notifications | undefined;
 }
 
 export default function Notifications({ notifications }: NotificationsProps) {

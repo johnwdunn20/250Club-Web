@@ -5,8 +5,12 @@ import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 
+type TodaysChallenges = NonNullable<
+  ReturnType<typeof api.challenges.getTodaysChallenge>
+>;
+
 interface TodaysWorkoutProps {
-  todaysChallenges: any[] | undefined; // Will be properly typed by Convex
+  todaysChallenges: TodaysChallenges | undefined;
 }
 
 export default function TodaysWorkout({
@@ -25,13 +29,11 @@ export default function TodaysWorkout({
   useEffect(() => {
     if (todaysChallenges && todaysChallenges.length > 0) {
       const initialProgress: Record<string, number> = {};
-      todaysChallenges.forEach((challenge: any) => {
-        challenge.exercises.forEach((exercise: any) => {
+      todaysChallenges.forEach((challenge) => {
+        challenge.exercises.forEach((exercise) => {
           const userProgress = challenge.participants
-            .find((p: any) => p.userId === challenge.currentUserId)
-            ?.exerciseProgress.find(
-              (ep: any) => ep.exerciseId === exercise._id
-            );
+            .find((p) => p.userId === challenge.currentUserId)
+            ?.exerciseProgress.find((ep) => ep.exerciseId === exercise._id);
           initialProgress[exercise._id] = userProgress?.completedReps || 0;
         });
       });
@@ -121,10 +123,10 @@ export default function TodaysWorkout({
   return (
     <div className="space-y-6 animate-fade-in-up">
       {/* Render each challenge */}
-      {todaysChallenges.map((todaysChallenge: any) => {
+      {todaysChallenges.map((todaysChallenge) => {
         // Find current user's progress for this challenge
         const currentUser = todaysChallenge.participants.find(
-          (p: any) => p.userId === todaysChallenge.currentUserId
+          (p) => p.userId === todaysChallenge.currentUserId
         );
         const userTotalCompleted = currentUser?.totalCompleted || 0;
         const userTotalTarget = currentUser?.totalTarget || 0;
@@ -165,7 +167,7 @@ export default function TodaysWorkout({
 
               {/* Interactive exercise cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                {todaysChallenge.exercises.map((exercise: any) => {
+                {todaysChallenge.exercises.map((exercise) => {
                   const completedReps = localProgress[exercise._id] || 0;
                   const isCompleted = completedReps >= exercise.targetReps;
 

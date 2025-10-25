@@ -16,10 +16,18 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+type Friends = NonNullable<ReturnType<typeof api.friendships.getFriends>>;
+type PendingRequests = NonNullable<
+  ReturnType<typeof api.friendships.getPendingRequests>
+>;
+type SentRequests = NonNullable<
+  ReturnType<typeof api.friendships.getSentRequests>
+>;
+
 interface FindFriendsProps {
-  friends: any; // Will be properly typed by Convex
-  pendingRequests: any; // Will be properly typed by Convex
-  sentRequests: any; // Will be properly typed by Convex
+  friends: Friends | undefined;
+  pendingRequests: PendingRequests | undefined;
+  sentRequests: SentRequests | undefined;
 }
 
 export default function FindFriends({
