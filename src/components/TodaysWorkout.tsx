@@ -5,6 +5,7 @@ import { useMutation } from "convex/react"
 import { api } from "../../convex/_generated/api"
 import { Id } from "../../convex/_generated/dataModel"
 import type { TodaysChallenges } from "@/types/convex"
+import StreakCard from "./StreakCard"
 
 interface TodaysWorkoutProps {
   todaysChallenges: TodaysChallenges | undefined
@@ -87,6 +88,7 @@ export default function TodaysWorkout({
             challenge or check back tomorrow!
           </p>
         </div>
+        <StreakCard currentStreak={0} />
       </div>
     )
   }
@@ -273,17 +275,7 @@ export default function TodaysWorkout({
       })}
 
       {/* Current streak card */}
-      <div className="card-mobile bg-gradient-to-br from-primary/10 to-accent/10">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-sm text-muted-foreground mb-1">
-              Current Streak
-            </div>
-            <div className="text-4xl font-bold text-foreground">0 days</div>
-          </div>
-          <div className="text-6xl">🔥</div>
-        </div>
-      </div>
+      <StreakCard currentStreak={0} />
     </div>
   )
 }
