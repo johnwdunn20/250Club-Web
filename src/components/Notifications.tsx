@@ -47,7 +47,7 @@ export default function Notifications({ notifications }: NotificationsProps) {
   const unreadCount = notifications.filter(n => !n.isRead).length
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Notifications</h1>
         {unreadCount > 0 && (

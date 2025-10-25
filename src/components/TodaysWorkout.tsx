@@ -76,7 +76,7 @@ export default function TodaysWorkout({
   // No challenge today
   if (!todaysChallenges || todaysChallenges.length === 0) {
     return (
-      <div className="space-y-6 animate-fade-in-up">
+      <div className="space-y-6">
         <div className="card-mobile text-center">
           <div className="text-6xl mb-4">📅</div>
           <h2 className="text-2xl font-bold text-foreground mb-2">
@@ -92,7 +92,7 @@ export default function TodaysWorkout({
   }
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
+    <div className="space-y-6">
       {/* Render each challenge */}
       {todaysChallenges.map(todaysChallenge => {
         // Find current user's progress for this challenge
