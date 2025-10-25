@@ -1,16 +1,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
-import { getUserTimezone } from "@/lib/utils";
 
-export default function TodaysWorkout() {
-  const timezone = getUserTimezone();
-  const todaysChallenges = useQuery(api.challenges.getTodaysChallenge, {
-    timezone,
-  });
+interface TodaysWorkoutProps {
+  todaysChallenges: any[] | undefined; // Will be properly typed by Convex
+}
+
+export default function TodaysWorkout({
+  todaysChallenges,
+}: TodaysWorkoutProps) {
   const updateProgress = useMutation(api.challenges.updateExerciseProgress);
 
   const [localProgress, setLocalProgress] = useState<Record<string, number>>(
@@ -24,11 +25,13 @@ export default function TodaysWorkout() {
   useEffect(() => {
     if (todaysChallenges && todaysChallenges.length > 0) {
       const initialProgress: Record<string, number> = {};
-      todaysChallenges.forEach((challenge) => {
-        challenge.exercises.forEach((exercise) => {
+      todaysChallenges.forEach((challenge: any) => {
+        challenge.exercises.forEach((exercise: any) => {
           const userProgress = challenge.participants
-            .find((p) => p.userId === challenge.currentUserId)
-            ?.exerciseProgress.find((ep) => ep.exerciseId === exercise._id);
+            .find((p: any) => p.userId === challenge.currentUserId)
+            ?.exerciseProgress.find(
+              (ep: any) => ep.exerciseId === exercise._id
+            );
           initialProgress[exercise._id] = userProgress?.completedReps || 0;
         });
       });
@@ -76,7 +79,7 @@ export default function TodaysWorkout() {
   // Loading state
   if (todaysChallenges === undefined) {
     return (
-      <div className="space-y-6 animate-fade-in-up">
+      <div className="space-y-6">
         <div className="card-mobile">
           <div className="animate-pulse">
             <div className="h-8 bg-muted rounded mb-4"></div>
@@ -118,10 +121,10 @@ export default function TodaysWorkout() {
   return (
     <div className="space-y-6 animate-fade-in-up">
       {/* Render each challenge */}
-      {todaysChallenges.map((todaysChallenge) => {
+      {todaysChallenges.map((todaysChallenge: any) => {
         // Find current user's progress for this challenge
         const currentUser = todaysChallenge.participants.find(
-          (p) => p.userId === todaysChallenge.currentUserId
+          (p: any) => p.userId === todaysChallenge.currentUserId
         );
         const userTotalCompleted = currentUser?.totalCompleted || 0;
         const userTotalTarget = currentUser?.totalTarget || 0;
@@ -162,7 +165,7 @@ export default function TodaysWorkout() {
 
               {/* Interactive exercise cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                {todaysChallenge.exercises.map((exercise) => {
+                {todaysChallenge.exercises.map((exercise: any) => {
                   const completedReps = localProgress[exercise._id] || 0;
                   const isCompleted = completedReps >= exercise.targetReps;
 

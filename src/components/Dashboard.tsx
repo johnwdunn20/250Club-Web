@@ -6,6 +6,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { getUserTimezone } from "@/lib/utils";
 import TodaysWorkout from "./TodaysWorkout";
 import NewChallenge from "./NewChallenge";
 import FindFriends from "./FindFriends";
@@ -14,7 +15,18 @@ import { ThemeToggle } from "./ThemeToggle";
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("workout");
+
+  // Preload all data for instant tab switching
+  const timezone = getUserTimezone();
   const unreadCount = useQuery(api.notifications.getUnreadCount);
+  const todaysChallenges = useQuery(api.challenges.getTodaysChallenge, {
+    timezone,
+  });
+  const userChallenges = useQuery(api.challenges.getUserChallenges);
+  const friends = useQuery(api.friendships.getFriends);
+  const pendingRequests = useQuery(api.friendships.getPendingRequests);
+  const sentRequests = useQuery(api.friendships.getSentRequests);
+  const notifications = useQuery(api.notifications.getNotifications);
 
   return (
     <div className="min-h-screen bg-background">
@@ -78,19 +90,23 @@ export default function Dashboard() {
           </div>
 
           <TabsContent value="workout">
-            <TodaysWorkout />
+            <TodaysWorkout todaysChallenges={todaysChallenges || undefined} />
           </TabsContent>
 
           <TabsContent value="challenge">
-            <NewChallenge />
+            <NewChallenge friends={friends} userChallenges={userChallenges} />
           </TabsContent>
 
           <TabsContent value="friends">
-            <FindFriends />
+            <FindFriends
+              friends={friends}
+              pendingRequests={pendingRequests}
+              sentRequests={sentRequests}
+            />
           </TabsContent>
 
           <TabsContent value="notifications">
-            <Notifications />
+            <Notifications notifications={notifications} />
           </TabsContent>
         </Tabs>
       </main>

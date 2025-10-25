@@ -16,7 +16,17 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-export default function FindFriends() {
+interface FindFriendsProps {
+  friends: any; // Will be properly typed by Convex
+  pendingRequests: any; // Will be properly typed by Convex
+  sentRequests: any; // Will be properly typed by Convex
+}
+
+export default function FindFriends({
+  friends,
+  pendingRequests,
+  sentRequests,
+}: FindFriendsProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState<{
@@ -29,10 +39,7 @@ export default function FindFriends() {
     friendName: "",
   });
 
-  // Convex queries
-  const friends = useQuery(api.friendships.getFriends);
-  const pendingRequests = useQuery(api.friendships.getPendingRequests);
-  const sentRequests = useQuery(api.friendships.getSentRequests);
+  // Dynamic query for search results (kept in component since it's user-driven)
   const searchResults = useQuery(
     api.friendships.searchUsers,
     searchTerm.trim() ? { searchTerm: searchTerm.trim() } : "skip"
@@ -112,7 +119,7 @@ export default function FindFriends() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
+    <div className="space-y-6">
       <div className="card-mobile">
         <h2 className="text-2xl font-bold text-foreground mb-2">
           Find Friends

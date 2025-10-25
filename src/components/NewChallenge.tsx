@@ -1,19 +1,27 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import { toast } from "sonner";
 import { Combobox, ComboboxOption } from "./ui/combobox";
-import { getTodayDate, getTomorrowDate, getUserTimezone } from "@/lib/utils";
+import { getTodayDate, getTomorrowDate } from "@/lib/utils";
 
 interface Exercise {
   name: string;
   targetReps: number;
 }
 
-export default function NewChallenge() {
+interface NewChallengeProps {
+  friends: any; // Will be properly typed by Convex
+  userChallenges: any; // Will be properly typed by Convex
+}
+
+export default function NewChallenge({
+  friends,
+  userChallenges,
+}: NewChallengeProps) {
   const [challengeName, setChallengeName] = useState("");
   const [selectedDate, setSelectedDate] = useState("today");
   const [exercises, setExercises] = useState<Exercise[]>([
@@ -22,10 +30,6 @@ export default function NewChallenge() {
   const [selectedFriends, setSelectedFriends] = useState<Id<"users">[]>([]);
   const [friendSearchTerm, setFriendSearchTerm] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Convex queries
-  const friends = useQuery(api.friendships.getFriends);
-  const userChallenges = useQuery(api.challenges.getUserChallenges);
 
   // Convex mutations
   const createChallenge = useMutation(api.challenges.createChallenge);
@@ -127,7 +131,7 @@ export default function NewChallenge() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
+    <div className="space-y-6">
       <div className="card-mobile">
         <h2 className="text-2xl font-bold text-foreground mb-2">
           Create a Challenge

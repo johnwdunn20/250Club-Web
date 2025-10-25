@@ -2,12 +2,15 @@
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useQuery, useMutation } from "convex/react";
+import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 
-export default function Notifications() {
-  const notifications = useQuery(api.notifications.getNotifications);
+interface NotificationsProps {
+  notifications: any; // Will be properly typed by Convex
+}
+
+export default function Notifications({ notifications }: NotificationsProps) {
   const markAsRead = useMutation(api.notifications.markAsRead);
   const markAllAsRead = useMutation(api.notifications.markAllAsRead);
 
@@ -25,7 +28,7 @@ export default function Notifications() {
 
   if (notifications.length === 0) {
     return (
-      <div className="space-y-6 animate-fade-in-up">
+      <div className="space-y-6 ">
         <Card className="p-6">
           <div className="text-center py-12">
             <span className="text-6xl mb-4 block">🔔</span>
