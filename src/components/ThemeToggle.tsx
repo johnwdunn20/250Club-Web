@@ -1,16 +1,16 @@
-"use client";
+"use client"
 
-import { Moon, Sun, Monitor } from "lucide-react";
-import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+import { Moon, Sun, Monitor } from "lucide-react"
+import { useTheme } from "next-themes"
+import { useEffect, useState } from "react"
 
 export function ThemeToggle() {
-  const [mounted, setMounted] = useState(false);
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false)
+  const { theme, setTheme, resolvedTheme } = useTheme()
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    setMounted(true)
+  }, [])
 
   if (!mounted) {
     return (
@@ -20,25 +20,29 @@ export function ThemeToggle() {
       >
         <Sun className="h-5 w-5" />
       </button>
-    );
+    )
   }
 
   const cycleTheme = () => {
     if (theme === "system") {
-      setTheme(resolvedTheme === "dark" ? "light" : "dark");
+      setTheme(resolvedTheme === "dark" ? "light" : "dark")
     } else if (theme === "light") {
-      setTheme("dark");
+      setTheme("dark")
     } else {
-      setTheme("system");
+      setTheme("system")
     }
-  };
+  }
 
   const getIcon = () => {
     if (theme === "system") {
-      return <Monitor className="h-5 w-5" />;
+      return <Monitor className="h-5 w-5" />
     }
-    return theme === "dark" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />;
-  };
+    return theme === "dark" ? (
+      <Moon className="h-5 w-5" />
+    ) : (
+      <Sun className="h-5 w-5" />
+    )
+  }
 
   return (
     <button
@@ -49,5 +53,5 @@ export function ThemeToggle() {
     >
       {getIcon()}
     </button>
-  );
+  )
 }

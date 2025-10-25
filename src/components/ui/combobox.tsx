@@ -1,10 +1,10 @@
-"use client";
+"use client"
 
-import * as React from "react";
-import { Check, ChevronsUpDown } from "lucide-react";
+import * as React from "react"
+import { Check, ChevronsUpDown } from "lucide-react"
 
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
 import {
   Command,
   CommandEmpty,
@@ -12,26 +12,26 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command";
+} from "@/components/ui/command"
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
+} from "@/components/ui/popover"
 
 export interface ComboboxOption {
-  value: string;
-  label: string;
+  value: string
+  label: string
 }
 
 export interface ComboboxProps {
-  options: ComboboxOption[];
-  value?: string;
-  onValueChange?: (value: string) => void;
-  placeholder?: string;
-  emptyText?: string;
-  className?: string;
-  disabled?: boolean;
+  options: ComboboxOption[]
+  value?: string
+  onValueChange?: (value: string) => void
+  placeholder?: string
+  emptyText?: string
+  className?: string
+  disabled?: boolean
 }
 
 export function Combobox({
@@ -43,18 +43,18 @@ export function Combobox({
   className,
   disabled = false,
 }: ComboboxProps) {
-  const [open, setOpen] = React.useState(false);
-  const triggerRef = React.useRef<HTMLButtonElement>(null);
-  const [triggerWidth, setTriggerWidth] = React.useState<number | undefined>();
+  const [open, setOpen] = React.useState(false)
+  const triggerRef = React.useRef<HTMLButtonElement>(null)
+  const [triggerWidth, setTriggerWidth] = React.useState<number | undefined>()
 
-  const selectedOption = options.find((option) => option.value === value);
+  const selectedOption = options.find(option => option.value === value)
 
   // Update trigger width when component mounts or opens
   React.useEffect(() => {
     if (triggerRef.current) {
-      setTriggerWidth(triggerRef.current.offsetWidth);
+      setTriggerWidth(triggerRef.current.offsetWidth)
     }
-  }, [open]);
+  }, [open])
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -80,13 +80,13 @@ export function Combobox({
           <CommandList>
             <CommandEmpty>{emptyText}</CommandEmpty>
             <CommandGroup>
-              {options.map((option) => (
+              {options.map(option => (
                 <CommandItem
                   key={option.value}
                   value={option.value}
-                  onSelect={(currentValue) => {
-                    onValueChange?.(currentValue === value ? "" : currentValue);
-                    setOpen(false);
+                  onSelect={currentValue => {
+                    onValueChange?.(currentValue === value ? "" : currentValue)
+                    setOpen(false)
                   }}
                 >
                   {option.label}
@@ -103,5 +103,5 @@ export function Combobox({
         </Command>
       </PopoverContent>
     </Popover>
-  );
+  )
 }

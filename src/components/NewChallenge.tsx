@@ -1,133 +1,138 @@
-"use client";
+"use client"
 
-import { useState, useMemo } from "react";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
-import { Id } from "../../convex/_generated/dataModel";
-import { toast } from "sonner";
-import { Combobox, ComboboxOption } from "./ui/combobox";
-import { getTodayDate, getTomorrowDate, getUserTimezone } from "@/lib/utils";
+import { useState, useMemo } from "react"
+import { useMutation } from "convex/react"
+import { api } from "../../convex/_generated/api"
+import { Id } from "../../convex/_generated/dataModel"
+import { toast } from "sonner"
+import { Combobox, ComboboxOption } from "./ui/combobox"
+import { getTodayDate, getTomorrowDate } from "@/lib/utils"
+import type { Friends, UserChallenges } from "@/types/convex"
 
 interface Exercise {
-  name: string;
-  targetReps: number;
+  name: string
+  targetReps: number
 }
 
-export default function NewChallenge() {
-  const [challengeName, setChallengeName] = useState("");
-  const [selectedDate, setSelectedDate] = useState("today");
+interface NewChallengeProps {
+  friends: Friends | undefined
+  userChallenges: UserChallenges | undefined
+}
+
+export default function NewChallenge({
+  friends,
+  userChallenges,
+}: NewChallengeProps) {
+  const [challengeName, setChallengeName] = useState("")
+  const [selectedDate, setSelectedDate] = useState("today")
   const [exercises, setExercises] = useState<Exercise[]>([
     { name: "", targetReps: 0 },
-  ]);
-  const [selectedFriends, setSelectedFriends] = useState<Id<"users">[]>([]);
-  const [friendSearchTerm, setFriendSearchTerm] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Convex queries
-  const friends = useQuery(api.friendships.getFriends);
-  const userChallenges = useQuery(api.challenges.getUserChallenges);
+  ])
+  const [selectedFriends, setSelectedFriends] = useState<Id<"users">[]>([])
+  const [friendSearchTerm, setFriendSearchTerm] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Convex mutations
-  const createChallenge = useMutation(api.challenges.createChallenge);
+  const createChallenge = useMutation(api.challenges.createChallenge)
 
   // Filter friends based on search term
   const filteredFriends = useMemo(() => {
-    if (!friends) return [];
-    if (!friendSearchTerm.trim()) return friends;
+    if (!friends) return []
+    if (!friendSearchTerm.trim()) return friends
 
-    const searchLower = friendSearchTerm.toLowerCase();
+    const searchLower = friendSearchTerm.toLowerCase()
     return friends.filter(
-      (friend) =>
+      friend =>
         friend.friend?.name?.toLowerCase().includes(searchLower) ||
         friend.friend?.email?.toLowerCase().includes(searchLower)
-    );
-  }, [friends, friendSearchTerm]);
+    )
+  }, [friends, friendSearchTerm])
 
   // Get today's and tomorrow's date strings
-  const today = getTodayDate();
-  const tomorrow = getTomorrowDate();
+  const today = getTodayDate()
+  const tomorrow = getTomorrowDate()
 
   // Date options for the combobox
   const dateOptions: ComboboxOption[] = [
     { value: "today", label: `Today (${today})` },
     { value: "tomorrow", label: `Tomorrow (${tomorrow})` },
-  ];
+  ]
 
   const handleAddExercise = () => {
-    setExercises([...exercises, { name: "", targetReps: 0 }]);
-  };
+    setExercises([...exercises, { name: "", targetReps: 0 }])
+  }
 
   const handleRemoveExercise = (index: number) => {
     if (exercises.length > 1) {
-      setExercises(exercises.filter((_, i) => i !== index));
+      setExercises(exercises.filter((_, i) => i !== index))
     }
-  };
+  }
 
   const handleExerciseChange = (
     index: number,
     field: keyof Exercise,
     value: string | number
   ) => {
-    const newExercises = [...exercises];
-    newExercises[index] = { ...newExercises[index], [field]: value };
-    setExercises(newExercises);
-  };
+    const newExercises = [...exercises]
+    newExercises[index] = { ...newExercises[index], [field]: value }
+    setExercises(newExercises)
+  }
 
   const handleFriendToggle = (friendId: Id<"users">) => {
-    setSelectedFriends((prev) =>
+    setSelectedFriends(prev =>
       prev.includes(friendId)
-        ? prev.filter((id) => id !== friendId)
+        ? prev.filter(id => id !== friendId)
         : [...prev, friendId]
-    );
-  };
+    )
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
 
     // Validation
     if (!challengeName.trim()) {
-      toast.error("Please enter a challenge name");
-      return;
+      toast.error("Please enter a challenge name")
+      return
     }
 
     const validExercises = exercises.filter(
-      (ex) => ex.name.trim() && ex.targetReps > 0
-    );
+      ex => ex.name.trim() && ex.targetReps > 0
+    )
     if (validExercises.length === 0) {
-      toast.error("Please add at least one exercise with valid name and reps");
-      return;
+      toast.error("Please add at least one exercise with valid name and reps")
+      return
     }
 
-    setIsSubmitting(true);
+    setIsSubmitting(true)
 
     try {
-      const targetDate = selectedDate === "today" ? today : tomorrow;
+      const targetDate = selectedDate === "today" ? today : tomorrow
 
       await createChallenge({
         name: challengeName.trim(),
         date: targetDate,
         exercises: validExercises,
         friendIds: selectedFriends,
-      });
+      })
 
-      toast.success("Challenge created successfully!");
+      toast.success("Challenge created successfully!")
 
       // Reset form
-      setChallengeName("");
-      setSelectedDate("today");
-      setExercises([{ name: "", targetReps: 0 }]);
-      setSelectedFriends([]);
-      setFriendSearchTerm("");
+      setChallengeName("")
+      setSelectedDate("today")
+      setExercises([{ name: "", targetReps: 0 }])
+      setSelectedFriends([])
+      setFriendSearchTerm("")
     } catch (error) {
-      console.error("Failed to create challenge:", error);
-      toast.error("Failed to create challenge. Please try again.");
+      console.error("Failed to create challenge:", error)
+      toast.error("Failed to create challenge. Please try again.")
     } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false)
     }
-  };
+  }
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
+    <div className="space-y-6">
       <div className="card-mobile">
         <h2 className="text-2xl font-bold text-foreground mb-2">
           Create a Challenge
@@ -146,7 +151,7 @@ export default function NewChallenge() {
               type="text"
               placeholder="e.g., Weekend Warrior"
               value={challengeName}
-              onChange={(e) => setChallengeName(e.target.value)}
+              onChange={e => setChallengeName(e.target.value)}
               className="w-full px-4 py-3 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground placeholder:text-muted-foreground"
               required
             />
@@ -188,7 +193,7 @@ export default function NewChallenge() {
                       type="text"
                       placeholder="Exercise name"
                       value={exercise.name}
-                      onChange={(e) =>
+                      onChange={e =>
                         handleExerciseChange(index, "name", e.target.value)
                       }
                       className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground placeholder:text-muted-foreground"
@@ -199,7 +204,7 @@ export default function NewChallenge() {
                       type="number"
                       placeholder="Reps"
                       value={exercise.targetReps || ""}
-                      onChange={(e) =>
+                      onChange={e =>
                         handleExerciseChange(
                           index,
                           "targetReps",
@@ -234,11 +239,11 @@ export default function NewChallenge() {
                   type="text"
                   placeholder="Search friends..."
                   value={friendSearchTerm}
-                  onChange={(e) => setFriendSearchTerm(e.target.value)}
+                  onChange={e => setFriendSearchTerm(e.target.value)}
                   className="w-full px-4 py-3 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground placeholder:text-muted-foreground"
                 />
                 <div className="max-h-40 overflow-y-auto space-y-2">
-                  {filteredFriends.map((friendship) => (
+                  {filteredFriends.map(friendship => (
                     <label
                       key={friendship._id}
                       className="flex items-center p-2 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
@@ -288,7 +293,7 @@ export default function NewChallenge() {
         </h3>
         <div className="space-y-3">
           {userChallenges && userChallenges.length > 0 ? (
-            userChallenges.map((challenge) => (
+            userChallenges.map(challenge => (
               <div
                 key={challenge._id}
                 className="p-4 bg-muted/30 rounded-lg border border-border"
@@ -326,5 +331,5 @@ export default function NewChallenge() {
         </div>
       </div>
     </div>
-  );
+  )
 }

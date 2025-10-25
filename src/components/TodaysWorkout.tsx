@@ -1,88 +1,88 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
-import { Id } from "../../convex/_generated/dataModel";
-import { getUserTimezone } from "@/lib/utils";
+import { useState, useEffect } from "react"
+import { useMutation } from "convex/react"
+import { api } from "../../convex/_generated/api"
+import { Id } from "../../convex/_generated/dataModel"
+import type { TodaysChallenges } from "@/types/convex"
 
-export default function TodaysWorkout() {
-  const timezone = getUserTimezone();
-  const todaysChallenges = useQuery(api.challenges.getTodaysChallenge, {
-    timezone,
-  });
-  const updateProgress = useMutation(api.challenges.updateExerciseProgress);
+interface TodaysWorkoutProps {
+  todaysChallenges: TodaysChallenges | undefined
+}
 
-  const [localProgress, setLocalProgress] = useState<Record<string, number>>(
-    {}
-  );
+export default function TodaysWorkout({
+  todaysChallenges,
+}: TodaysWorkoutProps) {
+  const updateProgress = useMutation(api.challenges.updateExerciseProgress)
+
+  const [localProgress, setLocalProgress] = useState<Record<string, number>>({})
   const [throttleTimeouts, setThrottleTimeouts] = useState<
     Record<string, NodeJS.Timeout>
-  >({});
+  >({})
 
   // Initialize local progress when data loads
   useEffect(() => {
     if (todaysChallenges && todaysChallenges.length > 0) {
-      const initialProgress: Record<string, number> = {};
-      todaysChallenges.forEach((challenge) => {
-        challenge.exercises.forEach((exercise) => {
+      const initialProgress: Record<string, number> = {}
+      todaysChallenges.forEach(challenge => {
+        challenge.exercises.forEach(exercise => {
           const userProgress = challenge.participants
-            .find((p) => p.userId === challenge.currentUserId)
-            ?.exerciseProgress.find((ep) => ep.exerciseId === exercise._id);
-          initialProgress[exercise._id] = userProgress?.completedReps || 0;
-        });
-      });
-      setLocalProgress(initialProgress);
+            .find(p => p.userId === challenge.currentUserId)
+            ?.exerciseProgress.find(ep => ep.exerciseId === exercise._id)
+          initialProgress[exercise._id] = userProgress?.completedReps || 0
+        })
+      })
+      setLocalProgress(initialProgress)
     }
-  }, [todaysChallenges]);
+  }, [todaysChallenges])
 
   // Cleanup timeouts on unmount to prevent memory leaks
   useEffect(() => {
     return () => {
       // Clear all pending timeouts on unmount
-      Object.values(throttleTimeouts).forEach(clearTimeout);
-    };
-  }, [throttleTimeouts]);
+      Object.values(throttleTimeouts).forEach(clearTimeout)
+    }
+  }, [throttleTimeouts])
 
   const handleRepChange = (exerciseId: Id<"exercises">, newValue: number) => {
     // Update local state immediately for responsive UI
-    setLocalProgress((prev) => ({ ...prev, [exerciseId]: newValue }));
+    setLocalProgress(prev => ({ ...prev, [exerciseId]: newValue }))
 
     // Clear existing timeout for this exercise
     if (throttleTimeouts[exerciseId]) {
-      clearTimeout(throttleTimeouts[exerciseId]);
+      clearTimeout(throttleTimeouts[exerciseId])
     }
 
     // Set new timeout - only send the latest value after 200ms of no changes
     const timeout = setTimeout(() => {
-      updateProgress({ exerciseId, completedReps: newValue });
-    }, 200);
+      updateProgress({ exerciseId, completedReps: newValue })
+    }, 200)
 
-    setThrottleTimeouts((prev) => ({ ...prev, [exerciseId]: timeout }));
-  };
+    setThrottleTimeouts(prev => ({ ...prev, [exerciseId]: timeout }))
+  }
 
   const incrementReps = (exerciseId: Id<"exercises">) => {
-    const currentValue = localProgress[exerciseId] || 0;
-    handleRepChange(exerciseId, currentValue + 1);
-  };
+    const currentValue = localProgress[exerciseId] || 0
+    handleRepChange(exerciseId, currentValue + 1)
+  }
 
   const decrementReps = (exerciseId: Id<"exercises">) => {
-    const currentValue = localProgress[exerciseId] || 0;
+    const currentValue = localProgress[exerciseId] || 0
     if (currentValue > 0) {
-      handleRepChange(exerciseId, currentValue - 1);
+      handleRepChange(exerciseId, currentValue - 1)
     }
-  };
+  }
 
   // Loading state
   if (todaysChallenges === undefined) {
     return (
-      <div className="space-y-6 animate-fade-in-up">
+      <div className="space-y-6">
         <div className="card-mobile">
           <div className="animate-pulse">
             <div className="h-8 bg-muted rounded mb-4"></div>
             <div className="h-4 bg-muted rounded mb-6"></div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-              {[1, 2, 3, 4].map((i) => (
+              {[1, 2, 3, 4].map(i => (
                 <div key={i} className="h-20 bg-muted rounded-lg"></div>
               ))}
             </div>
@@ -91,7 +91,7 @@ export default function TodaysWorkout() {
           </div>
         </div>
       </div>
-    );
+    )
   }
 
   // No challenge today
@@ -112,25 +112,25 @@ export default function TodaysWorkout() {
           </button>
         </div>
       </div>
-    );
+    )
   }
 
   return (
     <div className="space-y-6 animate-fade-in-up">
       {/* Render each challenge */}
-      {todaysChallenges.map((todaysChallenge) => {
+      {todaysChallenges.map(todaysChallenge => {
         // Find current user's progress for this challenge
         const currentUser = todaysChallenge.participants.find(
-          (p) => p.userId === todaysChallenge.currentUserId
-        );
-        const userTotalCompleted = currentUser?.totalCompleted || 0;
-        const userTotalTarget = currentUser?.totalTarget || 0;
-        const userCompletionPercentage = currentUser?.completionPercentage || 0;
+          p => p.userId === todaysChallenge.currentUserId
+        )
+        const userTotalCompleted = currentUser?.totalCompleted || 0
+        const userTotalTarget = currentUser?.totalTarget || 0
+        const userCompletionPercentage = currentUser?.completionPercentage || 0
 
         // Sort participants by total completed (descending)
         const sortedParticipants = [...todaysChallenge.participants].sort(
           (a, b) => b.totalCompleted - a.totalCompleted
-        );
+        )
 
         return (
           <div key={todaysChallenge._id} className="space-y-6">
@@ -141,12 +141,15 @@ export default function TodaysWorkout() {
                     {todaysChallenge.name}
                   </h2>
                   <p className="text-sm text-muted-foreground">
-                    {new Date(todaysChallenge.date).toLocaleDateString("en-US", {
-                      weekday: "long",
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
+                    {new Date(todaysChallenge.date).toLocaleDateString(
+                      "en-US",
+                      {
+                        weekday: "long",
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      }
+                    )}
                   </p>
                 </div>
                 <div className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-semibold">
@@ -159,9 +162,9 @@ export default function TodaysWorkout() {
 
               {/* Interactive exercise cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                {todaysChallenge.exercises.map((exercise) => {
-                  const completedReps = localProgress[exercise._id] || 0;
-                  const isCompleted = completedReps >= exercise.targetReps;
+                {todaysChallenge.exercises.map(exercise => {
+                  const completedReps = localProgress[exercise._id] || 0
+                  const isCompleted = completedReps >= exercise.targetReps
 
                   return (
                     <div
@@ -204,7 +207,7 @@ export default function TodaysWorkout() {
                         </div>
                       )}
                     </div>
-                  );
+                  )
                 })}
               </div>
 
@@ -225,11 +228,14 @@ export default function TodaysWorkout() {
 
             {/* Participants leaderboard */}
             <div className="card-mobile">
-              <h3 className="text-xl font-bold text-foreground mb-4">Participants</h3>
+              <h3 className="text-xl font-bold text-foreground mb-4">
+                Participants
+              </h3>
               <div className="space-y-3">
                 {sortedParticipants.map((participant, index) => {
-                  const isCurrentUser = participant.userId === currentUser?.userId;
-                  const isCompleted = participant.completionPercentage === 100;
+                  const isCurrentUser =
+                    participant.userId === currentUser?.userId
+                  const isCompleted = participant.completionPercentage === 100
 
                   return (
                     <div
@@ -252,8 +258,8 @@ export default function TodaysWorkout() {
                             )}
                           </div>
                           <div className="text-sm text-muted-foreground">
-                            {participant.totalCompleted} / {participant.totalTarget}{" "}
-                            reps
+                            {participant.totalCompleted} /{" "}
+                            {participant.totalTarget} reps
                           </div>
                         </div>
                       </div>
@@ -268,12 +274,12 @@ export default function TodaysWorkout() {
                         )}
                       </div>
                     </div>
-                  );
+                  )
                 })}
               </div>
             </div>
           </div>
-        );
+        )
       })}
 
       {/* Current streak card */}
@@ -289,5 +295,5 @@ export default function TodaysWorkout() {
         </div>
       </div>
     </div>
-  );
+  )
 }

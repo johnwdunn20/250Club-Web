@@ -1,20 +1,32 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { UserButton } from "@clerk/nextjs";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
-import TodaysWorkout from "./TodaysWorkout";
-import NewChallenge from "./NewChallenge";
-import FindFriends from "./FindFriends";
-import Notifications from "./Notifications";
-import { ThemeToggle } from "./ThemeToggle";
+import { useState } from "react"
+import { UserButton } from "@clerk/nextjs"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
+import { useQuery } from "convex/react"
+import { api } from "../../convex/_generated/api"
+import { getUserTimezone } from "@/lib/utils"
+import TodaysWorkout from "./TodaysWorkout"
+import NewChallenge from "./NewChallenge"
+import FindFriends from "./FindFriends"
+import Notifications from "./Notifications"
+import { ThemeToggle } from "./ThemeToggle"
 
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState("workout");
-  const unreadCount = useQuery(api.notifications.getUnreadCount);
+  const [activeTab, setActiveTab] = useState("workout")
+
+  // Preload all data for instant tab switching
+  const timezone = getUserTimezone()
+  const unreadCount = useQuery(api.notifications.getUnreadCount)
+  const todaysChallenges = useQuery(api.challenges.getTodaysChallenge, {
+    timezone,
+  })
+  const userChallenges = useQuery(api.challenges.getUserChallenges)
+  const friends = useQuery(api.friendships.getFriends)
+  const pendingRequests = useQuery(api.friendships.getPendingRequests)
+  const sentRequests = useQuery(api.friendships.getSentRequests)
+  const notifications = useQuery(api.notifications.getNotifications)
 
   return (
     <div className="min-h-screen bg-background">
@@ -46,7 +58,10 @@ export default function Dashboard() {
                 <span className="text-lg">💪</span>
                 <span className="hidden sm:inline">Today</span>
               </TabsTrigger>
-              <TabsTrigger value="challenge" className="flex items-center gap-2">
+              <TabsTrigger
+                value="challenge"
+                className="flex items-center gap-2"
+              >
                 <span className="text-lg">🎯</span>
                 <span className="hidden sm:inline">Challenge</span>
               </TabsTrigger>
@@ -54,7 +69,10 @@ export default function Dashboard() {
                 <span className="text-lg">👥</span>
                 <span className="hidden sm:inline">Friends</span>
               </TabsTrigger>
-              <TabsTrigger value="notifications" className="flex items-center gap-2">
+              <TabsTrigger
+                value="notifications"
+                className="flex items-center gap-2"
+              >
                 <div className="relative">
                   <span className="text-lg">🔔</span>
                   {unreadCount !== undefined && unreadCount > 0 && (
@@ -72,22 +90,26 @@ export default function Dashboard() {
           </div>
 
           <TabsContent value="workout">
-            <TodaysWorkout />
+            <TodaysWorkout todaysChallenges={todaysChallenges || undefined} />
           </TabsContent>
 
           <TabsContent value="challenge">
-            <NewChallenge />
+            <NewChallenge friends={friends} userChallenges={userChallenges} />
           </TabsContent>
 
           <TabsContent value="friends">
-            <FindFriends />
+            <FindFriends
+              friends={friends}
+              pendingRequests={pendingRequests}
+              sentRequests={sentRequests}
+            />
           </TabsContent>
 
           <TabsContent value="notifications">
-            <Notifications />
+            <Notifications notifications={notifications} />
           </TabsContent>
         </Tabs>
       </main>
     </div>
-  );
+  )
 }

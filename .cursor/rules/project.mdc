@@ -12,6 +12,7 @@ alwaysApply: true
 
 - `pnpm dev` - Start Next.js development server with Turbopack
 - `pnpm dev:convex` - Start Convex development server (run in parallel with main dev server)
+- `pnpm format` - Format file with prettier. Always format after making edits
 
 ### Building and Deployment
 
