@@ -251,11 +251,62 @@ export default function FindFriends({
               </div>
             ))
           ) : (
-            <div className="p-6 bg-muted/30 rounded-lg border border-border text-center">
-              <div className="text-4xl mb-2">👥</div>
-              <p className="text-sm text-muted-foreground">
-                No friends yet. Invite your friends to join!
-              </p>
+            <div className="p-6 bg-muted/30 rounded-lg border border-border">
+              <div className="text-center mb-6">
+                <div className="text-4xl mb-3">👥</div>
+                <h4 className="font-semibold text-foreground mb-2">
+                  No friends yet
+                </h4>
+                <p className="text-sm text-muted-foreground">
+                  Add friends to get the most out of 250 Club!
+                </p>
+              </div>
+
+              {/* Why friends matter */}
+              <div className="space-y-2 mb-6">
+                <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <span className="text-base">🏆</span>
+                  <span>
+                    Challenge friends to daily workouts and compete together
+                  </span>
+                </div>
+                <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <span className="text-base">👀</span>
+                  <span>
+                    See when friends complete challenges for motivation
+                  </span>
+                </div>
+                <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <span className="text-base">📊</span>
+                  <span>Track progress on a shared leaderboard</span>
+                </div>
+              </div>
+
+              {/* Invite link */}
+              <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
+                <p className="text-sm font-medium text-foreground mb-2">
+                  Invite friends to join 250 Club
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value="https://250club.johnwdunn.com/"
+                    className="flex-1 px-3 py-2 bg-background border border-input rounded-lg text-sm text-muted-foreground"
+                  />
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(
+                        "https://250club.johnwdunn.com/"
+                      )
+                      toast.success("Link copied to clipboard!")
+                    }}
+                    className="px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors"
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>

@@ -10,10 +10,16 @@ import type {
   ChallengeParticipant,
   StreakData,
   PendingInvitation,
+  FriendActivity,
+  WeeklyProgress,
+  UserChallenges,
 } from "@/types/convex"
 import { formatDateDisplay } from "@/lib/utils"
 import StreakCard from "./StreakCard"
 import PendingInvitationsCard from "./PendingInvitationsCard"
+import FriendActivityCard from "./FriendActivityCard"
+import WeeklyProgressCard from "./WeeklyProgressCard"
+import UpcomingChallengesCard from "./UpcomingChallengesCard"
 import { Button } from "./ui/button"
 import { toast } from "sonner"
 
@@ -21,6 +27,9 @@ interface TodaysWorkoutProps {
   todaysChallenges: TodaysChallenges | undefined
   streak: StreakData | undefined
   pendingInvitations: PendingInvitation[] | undefined
+  friendActivity: FriendActivity[] | undefined
+  weeklyProgress: WeeklyProgress | undefined
+  userChallenges: UserChallenges | undefined
   onNavigateToTab?: (tab: string) => void
 }
 
@@ -28,6 +37,9 @@ export default function TodaysWorkout({
   todaysChallenges,
   streak,
   pendingInvitations,
+  friendActivity,
+  weeklyProgress,
+  userChallenges,
   onNavigateToTab,
 }: TodaysWorkoutProps) {
   const updateProgress = useMutation(api.challenges.updateExerciseProgress)
@@ -130,29 +142,76 @@ export default function TodaysWorkout({
   if (todaysChallenges.length === 0) {
     return (
       <div className="space-y-6">
+        {/* Pending invitations */}
         <PendingInvitationsCard
           pendingInvitations={pendingInvitations}
           onAccept={handleAcceptInvitation}
           onDecline={handleDeclineInvitation}
         />
-        <div className="card-mobile text-center">
-          <div className="text-6xl mb-4">📅</div>
-          <h2 className="text-2xl font-bold text-foreground mb-2">
-            No Challenge Today
-          </h2>
-          <p className="text-muted-foreground mb-6">
-            There&apos;s no active challenge scheduled for today. Create a new
-            challenge or check back tomorrow!
-          </p>
+
+        {/* No challenge today card with CTAs */}
+        <div className="card-mobile">
+          <div className="text-center mb-6">
+            <div className="text-6xl mb-4">📅</div>
+            <h2 className="text-2xl font-bold text-foreground mb-2">
+              No Challenge Today
+            </h2>
+            <p className="text-muted-foreground">
+              There&apos;s no active challenge scheduled for today.
+            </p>
+          </div>
+
+          {/* Quick action buttons */}
           {onNavigateToTab && (
-            <Button
-              onClick={() => onNavigateToTab("challenge")}
-              className="mx-auto"
-            >
-              Create a Challenge
-            </Button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                onClick={() => onNavigateToTab("challenge")}
+                className="flex items-center gap-3 p-4 bg-primary/10 hover:bg-primary/20 border border-primary/20 rounded-lg transition-colors text-left"
+              >
+                <span className="text-2xl">🎯</span>
+                <div>
+                  <div className="font-semibold text-foreground">
+                    Create Challenge
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Start a new workout challenge
+                  </div>
+                </div>
+              </button>
+              <button
+                onClick={() => onNavigateToTab("friends")}
+                className="flex items-center gap-3 p-4 bg-accent/10 hover:bg-accent/20 border border-accent/20 rounded-lg transition-colors text-left"
+              >
+                <span className="text-2xl">👥</span>
+                <div>
+                  <div className="font-semibold text-foreground">
+                    Find Friends
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Invite friends to compete
+                  </div>
+                </div>
+              </button>
+            </div>
           )}
         </div>
+
+        {/* Friend activity - social motivation */}
+        <FriendActivityCard
+          friendActivity={friendActivity}
+          onNavigateToTab={onNavigateToTab}
+        />
+
+        {/* Weekly progress summary */}
+        <WeeklyProgressCard weeklyProgress={weeklyProgress} />
+
+        {/* Upcoming challenges */}
+        <UpcomingChallengesCard
+          userChallenges={userChallenges}
+          onNavigateToTab={onNavigateToTab}
+        />
+
+        {/* Streak card */}
         <StreakCard
           currentStreak={streak?.currentStreak ?? 0}
           longestStreak={streak?.longestStreak ?? 0}

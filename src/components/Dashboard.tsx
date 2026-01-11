@@ -32,6 +32,12 @@ export default function Dashboard() {
   const pendingRequests = useQuery(api.friendships.getPendingRequests)
   const sentRequests = useQuery(api.friendships.getSentRequests)
   const notifications = useQuery(api.notifications.getNotifications)
+  const friendActivity = useQuery(api.challenges.getFriendActivity, {
+    timezone,
+  })
+  const weeklyProgress = useQuery(api.challenges.getWeeklyProgress, {
+    timezone,
+  })
 
   return (
     <div className="min-h-screen bg-background">
@@ -99,6 +105,9 @@ export default function Dashboard() {
               todaysChallenges={todaysChallenges || undefined}
               streak={userStreak}
               pendingInvitations={pendingInvitations}
+              friendActivity={friendActivity}
+              weeklyProgress={weeklyProgress}
+              userChallenges={userChallenges}
               onNavigateToTab={setActiveTab}
             />
           </TabsContent>
