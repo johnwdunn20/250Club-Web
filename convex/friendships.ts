@@ -1,4 +1,5 @@
 import { query, mutation } from "./_generated/server"
+import { internal } from "./_generated/api"
 import { v } from "convex/values"
 import { getCurrentUser } from "./utils"
 
@@ -273,6 +274,12 @@ export const sendFriendRequest = mutation({
       createdAt: Date.now(),
     })
 
+    // Notify recipient of friend request
+    await ctx.scheduler.runAfter(0, internal.notifications.createNotification, {
+      userId: friendId,
+      message: `${currentUser.name} sent you a friend request`,
+    })
+
     return { success: true }
   },
 })
@@ -307,6 +314,12 @@ export const acceptFriendRequest = mutation({
     await ctx.db.insert("friendships", {
       userId: currentUser._id,
       friendId: request.requesterId,
+    })
+
+    // Notify requester that their request was accepted
+    await ctx.scheduler.runAfter(0, internal.notifications.createNotification, {
+      userId: request.requesterId,
+      message: `${currentUser.name} accepted your friend request`,
     })
 
     return { success: true }
