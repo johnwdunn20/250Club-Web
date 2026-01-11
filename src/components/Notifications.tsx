@@ -87,6 +87,11 @@ export default function Notifications({ notifications }: NotificationsProps) {
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const [isMarkingAllRead, setIsMarkingAllRead] = useState(false)
   const [isClearing, setIsClearing] = useState(false)
+  const [declineConfirm, setDeclineConfirm] = useState<{
+    isOpen: boolean
+    notificationId: Id<"notifications"> | null
+    type: "friend_request" | "challenge_invitation" | null
+  } | null>(null)
 
   const markAsRead = useMutation(api.notifications.markAsRead)
   const markAllAsRead = useMutation(api.notifications.markAllAsRead)
@@ -218,6 +223,17 @@ export default function Notifications({ notifications }: NotificationsProps) {
     }
   }
 
+  const handleConfirmDecline = async () => {
+    if (!declineConfirm?.notificationId || !declineConfirm?.type) return
+
+    if (declineConfirm.type === "friend_request") {
+      await handleDeclineFriendRequest(declineConfirm.notificationId)
+    } else {
+      await handleDeclineChallenge(declineConfirm.notificationId)
+    }
+    setDeclineConfirm(null)
+  }
+
   // Show loading skeleton while data is being fetched
   if (notifications === undefined) {
     return <NotificationsLoadingSkeleton />
@@ -293,6 +309,38 @@ export default function Notifications({ notifications }: NotificationsProps) {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Decline Confirmation Dialog */}
+      <AlertDialog
+        open={declineConfirm?.isOpen}
+        onOpenChange={open => !open && setDeclineConfirm(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {declineConfirm?.type === "friend_request"
+                ? "Decline friend request?"
+                : "Decline challenge invitation?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {declineConfirm?.type === "friend_request"
+                ? "Are you sure you want to decline this friend request?"
+                : "Are you sure you want to decline this challenge invitation?"}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={loadingId !== null}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDecline}
+              disabled={loadingId !== null}
+            >
+              {loadingId !== null ? "Declining..." : "Decline"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div className="space-y-3">
         {notifications.map(notification => (
           <Card
@@ -335,7 +383,11 @@ export default function Notifications({ notifications }: NotificationsProps) {
                       size="sm"
                       variant="outline"
                       onClick={() =>
-                        handleDeclineFriendRequest(notification._id)
+                        setDeclineConfirm({
+                          isOpen: true,
+                          notificationId: notification._id,
+                          type: "friend_request",
+                        })
                       }
                       disabled={loadingId !== null}
                     >
@@ -360,7 +412,13 @@ export default function Notifications({ notifications }: NotificationsProps) {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => handleDeclineChallenge(notification._id)}
+                      onClick={() =>
+                        setDeclineConfirm({
+                          isOpen: true,
+                          notificationId: notification._id,
+                          type: "challenge_invitation",
+                        })
+                      }
                       disabled={loadingId !== null}
                     >
                       {loadingId === `decline-challenge-${notification._id}`
