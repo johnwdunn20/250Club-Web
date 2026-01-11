@@ -119,3 +119,55 @@ export function formatDateDisplayWithRelative(dateStr: string): string {
     day: "numeric",
   })
 }
+
+/**
+ * Format a Unix timestamp (milliseconds) as a relative time string.
+ * Returns "Just now", "X minutes ago", "X hours ago", "Yesterday", or a formatted date.
+ * @param timestamp - Unix timestamp in milliseconds
+ */
+export function formatTimestampRelative(timestamp: number): string {
+  const now = Date.now()
+  const diffMs = now - timestamp
+  const diffSeconds = Math.floor(diffMs / 1000)
+  const diffMinutes = Math.floor(diffSeconds / 60)
+  const diffHours = Math.floor(diffMinutes / 60)
+  const diffDays = Math.floor(diffHours / 24)
+
+  if (diffSeconds < 60) {
+    return "Just now"
+  }
+
+  if (diffMinutes < 60) {
+    return `${diffMinutes} ${diffMinutes === 1 ? "minute" : "minutes"} ago`
+  }
+
+  if (diffHours < 24) {
+    return `${diffHours} ${diffHours === 1 ? "hour" : "hours"} ago`
+  }
+
+  if (diffDays === 1) {
+    return "Yesterday"
+  }
+
+  if (diffDays < 7) {
+    return `${diffDays} days ago`
+  }
+
+  // For older dates, show the actual date
+  const date = new Date(timestamp)
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year:
+      date.getFullYear() !== new Date().getFullYear() ? "numeric" : undefined,
+  })
+}
+
+/**
+ * Safely parse a YYYY-MM-DD date string into a Date object.
+ * Appends T00:00:00 to ensure consistent local timezone parsing.
+ * @param dateStr - Date in YYYY-MM-DD format
+ */
+export function parseDateString(dateStr: string): Date {
+  return new Date(dateStr + "T00:00:00")
+}

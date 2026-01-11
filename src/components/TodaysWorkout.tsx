@@ -11,6 +11,7 @@ import type {
   StreakData,
   PendingInvitation,
 } from "@/types/convex"
+import { formatDateDisplay } from "@/lib/utils"
 import StreakCard from "./StreakCard"
 import PendingInvitationsCard from "./PendingInvitationsCard"
 import { Button } from "./ui/button"
@@ -212,15 +213,12 @@ export default function TodaysWorkout({
                     {todaysChallenge.name}
                   </h2>
                   <p className="text-sm text-muted-foreground">
-                    {new Date(todaysChallenge.date).toLocaleDateString(
-                      "en-US",
-                      {
-                        weekday: "long",
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      }
-                    )}
+                    {formatDateDisplay(todaysChallenge.date, {
+                      weekday: "long",
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}
                   </p>
                 </div>
                 <div className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-semibold">

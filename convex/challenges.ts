@@ -238,14 +238,12 @@ export const getChallenge = query({
 
 // Get today's challenges for the current user
 export const getTodaysChallenge = query({
-  args: { timezone: v.optional(v.string()) },
+  args: { timezone: v.string() },
   handler: async (ctx, { timezone }) => {
     const currentUser = await getCurrentUser(ctx)
 
-    // Get today's date in YYYY-MM-DD format (user's timezone if provided, otherwise UTC fallback)
-    const today = timezone
-      ? getTodayDateFromTimezone(timezone)
-      : new Date().toISOString().split("T")[0]
+    // Get today's date in YYYY-MM-DD format (user's timezone)
+    const today = getTodayDateFromTimezone(timezone)
 
     // Find challenges for today where user is a participant
     const participants = await ctx.db
@@ -419,7 +417,7 @@ export const updateExerciseProgress = mutation({
 
 // Get user's current streak (consecutive days with 100% challenge completion)
 export const getUserStreak = query({
-  args: { timezone: v.optional(v.string()) },
+  args: { timezone: v.string() },
   returns: v.object({
     currentStreak: v.number(),
     longestStreak: v.number(),
@@ -486,9 +484,7 @@ export const getUserStreak = query({
 
     // Calculate current streak
     let currentStreak = 0
-    const today = timezone
-      ? getTodayDateFromTimezone(timezone)
-      : new Date().toISOString().split("T")[0]
+    const today = getTodayDateFromTimezone(timezone)
 
     // Start from today and count backwards
     const todayDate = new Date(today)
@@ -772,7 +768,7 @@ export const deleteChallenge = mutation({
 
 // Get past challenges with user's performance
 export const getPastChallenges = query({
-  args: { timezone: v.optional(v.string()) },
+  args: { timezone: v.string() },
   returns: v.array(
     v.object({
       _id: v.id("challenges"),
@@ -789,9 +785,7 @@ export const getPastChallenges = query({
   handler: async (ctx, { timezone }) => {
     const currentUser = await getCurrentUser(ctx)
 
-    const today = timezone
-      ? getTodayDateFromTimezone(timezone)
-      : new Date().toISOString().split("T")[0]
+    const today = getTodayDateFromTimezone(timezone)
 
     // Get all participations for the user
     const participations = await ctx.db

@@ -40,11 +40,13 @@ export function getTodayDateFromTimezone(timezone: string): string {
 
 /**
  * Get tomorrow's date in YYYY-MM-DD format (user's timezone)
+ * Uses setDate() instead of adding milliseconds to handle DST transitions correctly.
  * @param timezone - User's timezone (e.g., 'America/New_York')
  */
 export function getTomorrowDateFromTimezone(timezone: string): string {
   const now = new Date()
-  const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000)
+  const tomorrow = new Date(now)
+  tomorrow.setDate(tomorrow.getDate() + 1)
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: timezone,
     year: "numeric",
@@ -55,6 +57,7 @@ export function getTomorrowDateFromTimezone(timezone: string): string {
 
 /**
  * Get a date string with offset days from today (user's timezone)
+ * Uses setDate() instead of adding milliseconds to handle DST transitions correctly.
  * @param timezone - User's timezone (e.g., 'America/New_York')
  * @param daysOffset - Number of days to offset (positive for future, negative for past)
  */
@@ -63,7 +66,8 @@ export function getDateStringFromTimezone(
   daysOffset: number = 0
 ): string {
   const now = new Date()
-  const targetDate = new Date(now.getTime() + daysOffset * 24 * 60 * 60 * 1000)
+  const targetDate = new Date(now)
+  targetDate.setDate(targetDate.getDate() + daysOffset)
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: timezone,
     year: "numeric",

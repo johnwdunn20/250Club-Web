@@ -6,7 +6,13 @@ import { api } from "../../convex/_generated/api"
 import { Id } from "../../convex/_generated/dataModel"
 import { toast } from "sonner"
 import { Button } from "./ui/button"
-import { getTodayDate, formatDateDisplayWithRelative } from "@/lib/utils"
+import {
+  getTodayDate,
+  getDateString,
+  formatDateDisplay,
+  formatDateDisplayWithRelative,
+  parseDateString,
+} from "@/lib/utils"
 import type { Friends, UserChallenges } from "@/types/convex"
 import {
   AlertDialog,
@@ -343,11 +349,7 @@ export default function NewChallenge({
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  const tomorrow = new Date(today + "T00:00:00")
-                  tomorrow.setDate(tomorrow.getDate() + 1)
-                  setSelectedDate(tomorrow.toISOString().split("T")[0])
-                }}
+                onClick={() => setSelectedDate(getDateString(1))}
               >
                 Tomorrow
               </Button>
@@ -355,11 +357,7 @@ export default function NewChallenge({
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  const nextWeek = new Date(today + "T00:00:00")
-                  nextWeek.setDate(nextWeek.getDate() + 7)
-                  setSelectedDate(nextWeek.toISOString().split("T")[0])
-                }}
+                onClick={() => setSelectedDate(getDateString(7))}
               >
                 +1 Week
               </Button>
@@ -586,7 +584,7 @@ export default function NewChallenge({
                     </div>
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    {new Date(challenge.date).toLocaleDateString("en-US", {
+                    {formatDateDisplay(challenge.date, {
                       month: "short",
                       day: "numeric",
                     })}
