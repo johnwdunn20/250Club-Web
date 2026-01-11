@@ -268,7 +268,7 @@ export const sendFriendRequest = mutation({
     }
 
     // Create friend request
-    await ctx.db.insert("friend_requests", {
+    const requestId = await ctx.db.insert("friend_requests", {
       requesterId: currentUser._id,
       recipientId: friendId,
       createdAt: Date.now(),
@@ -278,6 +278,8 @@ export const sendFriendRequest = mutation({
     await ctx.scheduler.runAfter(0, internal.notifications.createNotification, {
       userId: friendId,
       message: `${currentUser.name} sent you a friend request`,
+      type: "friend_request" as const,
+      relatedId: requestId,
     })
 
     return { success: true }
@@ -320,6 +322,7 @@ export const acceptFriendRequest = mutation({
     await ctx.scheduler.runAfter(0, internal.notifications.createNotification, {
       userId: request.requesterId,
       message: `${currentUser.name} accepted your friend request`,
+      type: "info" as const,
     })
 
     return { success: true }

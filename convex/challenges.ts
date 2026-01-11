@@ -85,7 +85,7 @@ export const createChallenge = mutation({
         throw new Error("One or more selected users are not your friends")
       }
 
-      await ctx.db.insert("challenge_participants", {
+      const participantId = await ctx.db.insert("challenge_participants", {
         challengeId,
         userId: friendId,
         status: "invited",
@@ -100,6 +100,8 @@ export const createChallenge = mutation({
           message: `${
             currentUser.name
           } invited you to the challenge "${name.trim()}" on ${date}`,
+          type: "challenge_invitation" as const,
+          relatedId: participantId,
         }
       )
     }
@@ -642,6 +644,7 @@ export const acceptChallengeInvitation = mutation({
         {
           userId: challenge.creatorId,
           message: `${currentUser.name} accepted your invitation to "${challenge.name}"`,
+          type: "info" as const,
         }
       )
     }
@@ -687,6 +690,7 @@ export const declineChallengeInvitation = mutation({
         {
           userId: challenge.creatorId,
           message: `${currentUser.name} declined your invitation to "${challenge.name}"`,
+          type: "info" as const,
         }
       )
     }
@@ -753,6 +757,7 @@ export const deleteChallenge = mutation({
           {
             userId: participant.userId,
             message: `Challenge "${challenge.name}" has been cancelled by ${currentUser.name}`,
+            type: "info" as const,
           }
         )
       }
@@ -917,6 +922,7 @@ export const leaveChallenge = mutation({
     await ctx.scheduler.runAfter(0, internal.notifications.createNotification, {
       userId: challenge.creatorId,
       message: `${currentUser.name} left your challenge "${challenge.name}"`,
+      type: "info" as const,
     })
 
     return null

@@ -54,11 +54,18 @@ export type TodaysChallengeItem = Doc<"challenges"> & {
 }
 
 // Notification type
+export type NotificationType =
+  | "friend_request"
+  | "challenge_invitation"
+  | "info"
+
 export type Notification = {
   _id: Id<"notifications">
   message: string
   isRead: boolean
   createdAt: number
+  type: NotificationType
+  relatedId?: string
 }
 
 // Streak data type

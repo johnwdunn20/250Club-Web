@@ -16,7 +16,7 @@ import {
 import { useMutation } from "convex/react"
 import { api } from "../../convex/_generated/api"
 import { Id } from "../../convex/_generated/dataModel"
-import type { Notifications } from "@/types/convex"
+import type { Notifications, Notification } from "@/types/convex"
 import { NotificationsLoadingSkeleton } from "./skeletons/NotificationCardSkeleton"
 import { toast } from "sonner"
 
@@ -50,18 +50,36 @@ function formatRelativeTime(timestamp: number): string {
   }
 }
 
-// Helper to get notification icon based on content
-function getNotificationIcon(message: string): string {
-  if (message.includes("friend request") || message.includes("accepted")) {
-    return "👥"
-  } else if (message.includes("challenge") || message.includes("invitation")) {
-    return "🎯"
-  } else if (message.includes("completed") || message.includes("streak")) {
-    return "🏆"
-  } else if (message.includes("declined") || message.includes("left")) {
-    return "👋"
+// Helper to get notification icon based on type and content
+function getNotificationIcon(notification: Notification): string {
+  switch (notification.type) {
+    case "friend_request":
+      return "👥"
+    case "challenge_invitation":
+      return "🎯"
+    default:
+      // Fallback to content-based detection for info type
+      if (
+        notification.message.includes("accepted") ||
+        notification.message.includes("friend")
+      ) {
+        return "👥"
+      } else if (notification.message.includes("challenge")) {
+        return "🎯"
+      } else if (
+        notification.message.includes("completed") ||
+        notification.message.includes("streak")
+      ) {
+        return "🏆"
+      } else if (
+        notification.message.includes("declined") ||
+        notification.message.includes("left") ||
+        notification.message.includes("cancelled")
+      ) {
+        return "👋"
+      }
+      return "🔔"
   }
-  return "🔔"
 }
 
 export default function Notifications({ notifications }: NotificationsProps) {
@@ -75,6 +93,20 @@ export default function Notifications({ notifications }: NotificationsProps) {
   const deleteNotification = useMutation(api.notifications.deleteNotification)
   const clearAllNotifications = useMutation(
     api.notifications.clearAllNotifications
+  )
+
+  // Action mutations for actionable notifications
+  const acceptFriendRequest = useMutation(
+    api.notifications.acceptFriendRequestFromNotification
+  )
+  const declineFriendRequest = useMutation(
+    api.notifications.declineFriendRequestFromNotification
+  )
+  const acceptChallenge = useMutation(
+    api.notifications.acceptChallengeFromNotification
+  )
+  const declineChallenge = useMutation(
+    api.notifications.declineChallengeFromNotification
   )
 
   const handleMarkAsRead = async (notificationId: Id<"notifications">) => {
@@ -125,6 +157,64 @@ export default function Notifications({ notifications }: NotificationsProps) {
       toast.error("Failed to clear notifications")
     } finally {
       setIsClearing(false)
+    }
+  }
+
+  const handleAcceptFriendRequest = async (
+    notificationId: Id<"notifications">
+  ) => {
+    setLoadingId(`accept-friend-${notificationId}`)
+    try {
+      await acceptFriendRequest({ notificationId })
+      toast.success("Friend request accepted!")
+    } catch (error) {
+      console.error("Failed to accept friend request:", error)
+      toast.error("Failed to accept friend request")
+    } finally {
+      setLoadingId(null)
+    }
+  }
+
+  const handleDeclineFriendRequest = async (
+    notificationId: Id<"notifications">
+  ) => {
+    setLoadingId(`decline-friend-${notificationId}`)
+    try {
+      await declineFriendRequest({ notificationId })
+      toast.info("Friend request declined")
+    } catch (error) {
+      console.error("Failed to decline friend request:", error)
+      toast.error("Failed to decline friend request")
+    } finally {
+      setLoadingId(null)
+    }
+  }
+
+  const handleAcceptChallenge = async (notificationId: Id<"notifications">) => {
+    setLoadingId(`accept-challenge-${notificationId}`)
+    try {
+      await acceptChallenge({ notificationId })
+      toast.success("Challenge invitation accepted!")
+    } catch (error) {
+      console.error("Failed to accept challenge:", error)
+      toast.error("Failed to accept challenge invitation")
+    } finally {
+      setLoadingId(null)
+    }
+  }
+
+  const handleDeclineChallenge = async (
+    notificationId: Id<"notifications">
+  ) => {
+    setLoadingId(`decline-challenge-${notificationId}`)
+    try {
+      await declineChallenge({ notificationId })
+      toast.info("Challenge invitation declined")
+    } catch (error) {
+      console.error("Failed to decline challenge:", error)
+      toast.error("Failed to decline challenge invitation")
+    } finally {
+      setLoadingId(null)
     }
   }
 
@@ -215,7 +305,7 @@ export default function Notifications({ notifications }: NotificationsProps) {
           >
             <div className="flex items-start gap-3">
               <span className="text-2xl flex-shrink-0">
-                {getNotificationIcon(notification.message)}
+                {getNotificationIcon(notification)}
               </span>
               <div className="flex-1 min-w-0">
                 <p
@@ -226,29 +316,86 @@ export default function Notifications({ notifications }: NotificationsProps) {
                 <p className="text-xs text-muted-foreground mt-1">
                   {formatRelativeTime(notification.createdAt)}
                 </p>
+
+                {/* Action buttons for actionable notifications */}
+                {notification.type === "friend_request" && (
+                  <div className="flex gap-2 mt-3">
+                    <Button
+                      size="sm"
+                      onClick={() =>
+                        handleAcceptFriendRequest(notification._id)
+                      }
+                      disabled={loadingId !== null}
+                    >
+                      {loadingId === `accept-friend-${notification._id}`
+                        ? "Accepting..."
+                        : "Accept"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        handleDeclineFriendRequest(notification._id)
+                      }
+                      disabled={loadingId !== null}
+                    >
+                      {loadingId === `decline-friend-${notification._id}`
+                        ? "Declining..."
+                        : "Decline"}
+                    </Button>
+                  </div>
+                )}
+
+                {notification.type === "challenge_invitation" && (
+                  <div className="flex gap-2 mt-3">
+                    <Button
+                      size="sm"
+                      onClick={() => handleAcceptChallenge(notification._id)}
+                      disabled={loadingId !== null}
+                    >
+                      {loadingId === `accept-challenge-${notification._id}`
+                        ? "Accepting..."
+                        : "Accept"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDeclineChallenge(notification._id)}
+                      disabled={loadingId !== null}
+                    >
+                      {loadingId === `decline-challenge-${notification._id}`
+                        ? "Declining..."
+                        : "Decline"}
+                    </Button>
+                  </div>
+                )}
               </div>
-              <div className="flex gap-1 flex-shrink-0">
-                {!notification.isRead && (
+
+              {/* Only show dismiss for info notifications */}
+              {notification.type === "info" && (
+                <div className="flex gap-1 flex-shrink-0">
+                  {!notification.isRead && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleMarkAsRead(notification._id)}
+                      className="h-8 px-2 text-xs"
+                      disabled={loadingId !== null}
+                    >
+                      {loadingId === `read-${notification._id}` ? "..." : "✓"}
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleMarkAsRead(notification._id)}
-                    className="h-8 px-2 text-xs"
+                    onClick={() => handleDelete(notification._id)}
+                    className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive"
                     disabled={loadingId !== null}
                   >
-                    {loadingId === `read-${notification._id}` ? "..." : "✓"}
+                    {loadingId === `delete-${notification._id}` ? "..." : "✕"}
                   </Button>
-                )}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleDelete(notification._id)}
-                  className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive"
-                  disabled={loadingId !== null}
-                >
-                  {loadingId === `delete-${notification._id}` ? "..." : "✕"}
-                </Button>
-              </div>
+                </div>
+              )}
             </div>
           </Card>
         ))}
