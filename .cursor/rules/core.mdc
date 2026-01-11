@@ -28,7 +28,10 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 // Use cn() for conditional classes
 import { cn } from "@/lib/utils"
 
-<Button className={cn("w-full", isLoading && "opacity-50")} disabled={isLoading}>
+;<Button
+  className={cn("w-full", isLoading && "opacity-50")}
+  disabled={isLoading}
+>
   {isLoading ? "Loading..." : "Submit"}
 </Button>
 ```
@@ -45,7 +48,7 @@ import { getCurrentUser } from "./utils"
 export const myFunction = query({
   args: {},
   returns: v.null(),
-  handler: async (ctx) => {
+  handler: async ctx => {
     const user = await getCurrentUser(ctx) // Handles auth check + user lookup
     // user is guaranteed to exist here
     return null
@@ -137,20 +140,20 @@ if (data === undefined) {
 
 Convex `useQuery` returns three distinct states:
 
-| State | Value | Meaning |
-|-------|-------|---------|
-| Loading | `undefined` | Query hasn't returned yet |
-| No data | `null` | Query completed, no results found |
-| Has data | `[...]` or `{...}` | Query completed with data |
+| State    | Value              | Meaning                           |
+| -------- | ------------------ | --------------------------------- |
+| Loading  | `undefined`        | Query hasn't returned yet         |
+| No data  | `null`             | Query completed, no results found |
+| Has data | `[...]` or `{...}` | Query completed with data         |
 
 **WRONG - conflates loading and no-data:**
 
 ```tsx
 // BAD: || treats both null and undefined as falsy
-<MyComponent data={queryResult || undefined} />
+;<MyComponent data={queryResult || undefined} />
 
 // BAD: This makes "no data" look like "still loading"
-if (data === undefined) return <Skeleton />  // Will show skeleton for null too!
+if (data === undefined) return <Skeleton /> // Will show skeleton for null too!
 ```
 
 **CORRECT - handle all three states explicitly:**
@@ -158,20 +161,21 @@ if (data === undefined) return <Skeleton />  // Will show skeleton for null too!
 ```tsx
 // GOOD: Pass query result directly, accept null in prop types
 interface Props {
-  data: MyData[] | null | undefined  // Accept all three states
+  data: MyData[] | null | undefined // Accept all three states
 }
 
 // GOOD: Handle states explicitly in component
 if (data === undefined) {
-  return <Skeleton />  // Loading
+  return <Skeleton /> // Loading
 }
 if (data === null || data.length === 0) {
-  return <EmptyState />  // No data
+  return <EmptyState /> // No data
 }
-return <DataView data={data} />  // Has data
+return <DataView data={data} /> // Has data
 ```
 
 When passing Convex query results as props:
+
 1. **Never coerce** - pass the value directly
 2. **Type props to accept `| null | undefined`** - forces explicit handling
 3. **Check `=== undefined` for loading** - not falsy checks
