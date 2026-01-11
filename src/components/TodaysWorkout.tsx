@@ -1,34 +1,56 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useMutation } from "convex/react"
 import { api } from "../../convex/_generated/api"
 import { Id } from "../../convex/_generated/dataModel"
-import type { TodaysChallenges } from "@/types/convex"
+import type {
+  TodaysChallenges,
+  Exercise,
+  ChallengeParticipant,
+  StreakData,
+  PendingInvitation,
+} from "@/types/convex"
+import StreakCard from "./StreakCard"
+import PendingInvitationsCard from "./PendingInvitationsCard"
+import { Button } from "./ui/button"
+import { toast } from "sonner"
 
 interface TodaysWorkoutProps {
   todaysChallenges: TodaysChallenges | undefined
+  streak: StreakData | undefined
+  pendingInvitations: PendingInvitation[] | undefined
+  onNavigateToTab?: (tab: string) => void
 }
 
 export default function TodaysWorkout({
   todaysChallenges,
+  streak,
+  pendingInvitations,
+  onNavigateToTab,
 }: TodaysWorkoutProps) {
   const updateProgress = useMutation(api.challenges.updateExerciseProgress)
+  const acceptInvitation = useMutation(api.challenges.acceptChallengeInvitation)
+  const declineInvitation = useMutation(
+    api.challenges.declineChallengeInvitation
+  )
 
   const [localProgress, setLocalProgress] = useState<Record<string, number>>({})
-  const [throttleTimeouts, setThrottleTimeouts] = useState<
-    Record<string, NodeJS.Timeout>
-  >({})
+  const throttleTimeoutsRef = useRef<Record<string, NodeJS.Timeout>>({})
 
   // Initialize local progress when data loads
   useEffect(() => {
     if (todaysChallenges && todaysChallenges.length > 0) {
       const initialProgress: Record<string, number> = {}
       todaysChallenges.forEach(challenge => {
-        challenge.exercises.forEach(exercise => {
+        challenge.exercises.forEach((exercise: Exercise) => {
           const userProgress = challenge.participants
-            .find(p => p.userId === challenge.currentUserId)
-            ?.exerciseProgress.find(ep => ep.exerciseId === exercise._id)
+            .find(
+              (p: ChallengeParticipant) => p.userId === challenge.currentUserId
+            )
+            ?.exerciseProgress.find(
+              (ep: { exerciseId: string }) => ep.exerciseId === exercise._id
+            )
           initialProgress[exercise._id] = userProgress?.completedReps || 0
         })
       })
@@ -38,19 +60,44 @@ export default function TodaysWorkout({
 
   // Cleanup timeouts on unmount to prevent memory leaks
   useEffect(() => {
+    const timeouts = throttleTimeoutsRef.current
     return () => {
       // Clear all pending timeouts on unmount
-      Object.values(throttleTimeouts).forEach(clearTimeout)
+      Object.values(timeouts).forEach(clearTimeout)
     }
-  }, [throttleTimeouts])
+  }, []) // Empty deps - only cleanup on unmount
+
+  const handleAcceptInvitation = async (
+    participantId: Id<"challenge_participants">
+  ) => {
+    try {
+      await acceptInvitation({ participantId })
+      toast.success("Challenge invitation accepted!")
+    } catch (error) {
+      console.error("Failed to accept invitation:", error)
+      toast.error("Failed to accept invitation")
+    }
+  }
+
+  const handleDeclineInvitation = async (
+    participantId: Id<"challenge_participants">
+  ) => {
+    try {
+      await declineInvitation({ participantId })
+      toast.info("Challenge invitation declined")
+    } catch (error) {
+      console.error("Failed to decline invitation:", error)
+      toast.error("Failed to decline invitation")
+    }
+  }
 
   const handleRepChange = (exerciseId: Id<"exercises">, newValue: number) => {
     // Update local state immediately for responsive UI
     setLocalProgress(prev => ({ ...prev, [exerciseId]: newValue }))
 
     // Clear existing timeout for this exercise
-    if (throttleTimeouts[exerciseId]) {
-      clearTimeout(throttleTimeouts[exerciseId])
+    if (throttleTimeoutsRef.current[exerciseId]) {
+      clearTimeout(throttleTimeoutsRef.current[exerciseId])
     }
 
     // Set new timeout - only send the latest value after 200ms of no changes
@@ -58,7 +105,7 @@ export default function TodaysWorkout({
       updateProgress({ exerciseId, completedReps: newValue })
     }, 200)
 
-    setThrottleTimeouts(prev => ({ ...prev, [exerciseId]: timeout }))
+    throttleTimeoutsRef.current[exerciseId] = timeout
   }
 
   const incrementReps = (exerciseId: Id<"exercises">) => {
@@ -73,10 +120,20 @@ export default function TodaysWorkout({
     }
   }
 
-  // No challenge today
-  if (!todaysChallenges || todaysChallenges.length === 0) {
+  // Still loading - return null (fast backend, avoid flash of empty state)
+  if (todaysChallenges === undefined) {
+    return null
+  }
+
+  // No challenge today (confirmed by data)
+  if (todaysChallenges.length === 0) {
     return (
       <div className="space-y-6">
+        <PendingInvitationsCard
+          pendingInvitations={pendingInvitations}
+          onAccept={handleAcceptInvitation}
+          onDecline={handleDeclineInvitation}
+        />
         <div className="card-mobile text-center">
           <div className="text-6xl mb-4">📅</div>
           <h2 className="text-2xl font-bold text-foreground mb-2">
@@ -86,22 +143,60 @@ export default function TodaysWorkout({
             There&apos;s no active challenge scheduled for today. Create a new
             challenge or check back tomorrow!
           </p>
+          {onNavigateToTab && (
+            <Button
+              onClick={() => onNavigateToTab("challenge")}
+              className="mx-auto"
+            >
+              Create a Challenge
+            </Button>
+          )}
         </div>
+        <StreakCard
+          currentStreak={streak?.currentStreak ?? 0}
+          longestStreak={streak?.longestStreak ?? 0}
+        />
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
+      {/* Pending invitations */}
+      <PendingInvitationsCard
+        pendingInvitations={pendingInvitations}
+        onAccept={handleAcceptInvitation}
+        onDecline={handleDeclineInvitation}
+      />
+
       {/* Render each challenge */}
       {todaysChallenges.map(todaysChallenge => {
         // Find current user's progress for this challenge
-        const currentUser = todaysChallenge.participants.find(
-          p => p.userId === todaysChallenge.currentUserId
+        const currentUserParticipant = todaysChallenge.participants.find(
+          (p: ChallengeParticipant) =>
+            p.userId === todaysChallenge.currentUserId
         )
-        const userTotalCompleted = currentUser?.totalCompleted || 0
-        const userTotalTarget = currentUser?.totalTarget || 0
-        const userCompletionPercentage = currentUser?.completionPercentage || 0
+        const userTotalCompleted = currentUserParticipant?.totalCompleted || 0
+        const userTotalTarget = currentUserParticipant?.totalTarget || 0
+
+        // Calculate completion percentage by averaging individual exercise completion rates
+        const exerciseCount = todaysChallenge.exercises.length
+        const userCompletionPercentage =
+          exerciseCount > 0
+            ? Math.round(
+                todaysChallenge.exercises.reduce(
+                  (sum: number, exercise: Exercise) => {
+                    const completedReps = localProgress[exercise._id] || 0
+                    const exercisePercentage = Math.min(
+                      (completedReps / exercise.targetReps) * 100,
+                      100
+                    )
+                    return sum + exercisePercentage
+                  },
+                  0
+                ) / exerciseCount
+              )
+            : 0
 
         // Sort participants by total completed (descending)
         const sortedParticipants = [...todaysChallenge.participants].sort(
@@ -136,9 +231,43 @@ export default function TodaysWorkout({
                 Complete all exercises to maintain your streak
               </p>
 
+              {/* Quick actions */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                <button
+                  onClick={() => {
+                    // Batch all state updates together to avoid race conditions
+                    const updates: Record<string, number> = {}
+                    todaysChallenge.exercises.forEach((exercise: Exercise) => {
+                      updates[exercise._id] = exercise.targetReps
+                    })
+                    setLocalProgress(prev => ({ ...prev, ...updates }))
+
+                    // Clear any existing timeouts and set one batch timeout
+                    Object.values(throttleTimeoutsRef.current).forEach(
+                      clearTimeout
+                    )
+                    const timeout = setTimeout(() => {
+                      todaysChallenge.exercises.forEach(
+                        (exercise: Exercise) => {
+                          updateProgress({
+                            exerciseId: exercise._id,
+                            completedReps: exercise.targetReps,
+                          })
+                        }
+                      )
+                    }, 200)
+                    throttleTimeoutsRef.current["batch"] = timeout
+                    toast.success("All exercises marked complete!")
+                  }}
+                  className="px-3 py-1.5 text-sm bg-green-500/10 text-green-600 rounded-full hover:bg-green-500/20 transition-colors border border-green-500/20"
+                >
+                  ✓ Complete All
+                </button>
+              </div>
+
               {/* Interactive exercise cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                {todaysChallenge.exercises.map(exercise => {
+                {todaysChallenge.exercises.map((exercise: Exercise) => {
                   const completedReps = localProgress[exercise._id] || 0
                   const isCompleted = completedReps >= exercise.targetReps
 
@@ -159,6 +288,7 @@ export default function TodaysWorkout({
                           onClick={() => decrementReps(exercise._id)}
                           className="w-8 h-8 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center text-lg font-bold transition-all"
                           disabled={completedReps === 0}
+                          aria-label={`Decrease ${exercise.name} reps`}
                         >
                           -
                         </button>
@@ -173,15 +303,27 @@ export default function TodaysWorkout({
                         <button
                           onClick={() => incrementReps(exercise._id)}
                           className="w-8 h-8 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center text-lg font-bold transition-all"
+                          aria-label={`Increase ${exercise.name} reps`}
                         >
                           +
                         </button>
                       </div>
-                      {isCompleted && (
-                        <div className="text-xs text-green-600 font-semibold">
-                          ✓ Complete!
-                        </div>
-                      )}
+                      {/* Quick complete button for individual exercise */}
+                      <button
+                        onClick={() =>
+                          handleRepChange(
+                            exercise._id,
+                            isCompleted ? 0 : exercise.targetReps
+                          )
+                        }
+                        className={`text-xs font-semibold ${
+                          isCompleted
+                            ? "text-green-600"
+                            : "text-muted-foreground hover:text-primary"
+                        }`}
+                      >
+                        {isCompleted ? "✓ Complete!" : "Quick complete"}
+                      </button>
                     </div>
                   )
                 })}
@@ -210,7 +352,7 @@ export default function TodaysWorkout({
               <div className="space-y-3">
                 {sortedParticipants.map((participant, index) => {
                   const isCurrentUser =
-                    participant.userId === currentUser?.userId
+                    participant.userId === currentUserParticipant?.userId
                   const isCompleted = participant.completionPercentage === 100
 
                   return (
@@ -259,17 +401,10 @@ export default function TodaysWorkout({
       })}
 
       {/* Current streak card */}
-      <div className="card-mobile bg-gradient-to-br from-primary/10 to-accent/10">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-sm text-muted-foreground mb-1">
-              Current Streak
-            </div>
-            <div className="text-4xl font-bold text-foreground">0 days</div>
-          </div>
-          <div className="text-6xl">🔥</div>
-        </div>
-      </div>
+      <StreakCard
+        currentStreak={streak?.currentStreak ?? 0}
+        longestStreak={streak?.longestStreak ?? 0}
+      />
     </div>
   )
 }

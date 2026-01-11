@@ -70,6 +70,14 @@ export default defineSchema({
     message: v.string(),
     isRead: v.boolean(),
     createdAt: v.number(),
+    type: v.optional(
+      v.union(
+        v.literal("friend_request"),
+        v.literal("challenge_invitation"),
+        v.literal("info")
+      )
+    ),
+    relatedId: v.optional(v.string()),
   })
     .index("by_user", ["userId"])
     .index("by_user_and_read", ["userId", "isRead"]),

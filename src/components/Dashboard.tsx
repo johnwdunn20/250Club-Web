@@ -23,6 +23,11 @@ export default function Dashboard() {
     timezone,
   })
   const userChallenges = useQuery(api.challenges.getUserChallenges)
+  const pastChallenges = useQuery(api.challenges.getPastChallenges, {
+    timezone,
+  })
+  const userStreak = useQuery(api.challenges.getUserStreak, { timezone })
+  const pendingInvitations = useQuery(api.challenges.getPendingInvitations)
   const friends = useQuery(api.friendships.getFriends)
   const pendingRequests = useQuery(api.friendships.getPendingRequests)
   const sentRequests = useQuery(api.friendships.getSentRequests)
@@ -90,11 +95,21 @@ export default function Dashboard() {
           </div>
 
           <TabsContent value="workout">
-            <TodaysWorkout todaysChallenges={todaysChallenges || undefined} />
+            <TodaysWorkout
+              todaysChallenges={todaysChallenges || undefined}
+              streak={userStreak}
+              pendingInvitations={pendingInvitations}
+              onNavigateToTab={setActiveTab}
+            />
           </TabsContent>
 
           <TabsContent value="challenge">
-            <NewChallenge friends={friends} userChallenges={userChallenges} />
+            <NewChallenge
+              friends={friends}
+              userChallenges={userChallenges}
+              pastChallenges={pastChallenges}
+              onNavigateToTab={setActiveTab}
+            />
           </TabsContent>
 
           <TabsContent value="friends">

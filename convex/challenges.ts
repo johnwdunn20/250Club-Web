@@ -16,6 +16,10 @@ export const createChallenge = mutation({
     ),
     friendIds: v.array(v.id("users")),
   },
+  returns: v.object({
+    challengeId: v.id("challenges"),
+    exerciseIds: v.array(v.id("exercises")),
+  }),
   handler: async (ctx, { name, date, exercises, friendIds }) => {
     const currentUser = await getCurrentUser(ctx)
 
@@ -81,7 +85,7 @@ export const createChallenge = mutation({
         throw new Error("One or more selected users are not your friends")
       }
 
-      await ctx.db.insert("challenge_participants", {
+      const participantId = await ctx.db.insert("challenge_participants", {
         challengeId,
         userId: friendId,
         status: "invited",
@@ -96,6 +100,8 @@ export const createChallenge = mutation({
           message: `${
             currentUser.name
           } invited you to the challenge "${name.trim()}" on ${date}`,
+          type: "challenge_invitation" as const,
+          relatedId: participantId,
         }
       )
     }
@@ -111,41 +117,56 @@ export const getUserChallenges = query({
     const currentUser = await getCurrentUser(ctx)
 
     // Get challenges where user is a participant
-    const participants = await ctx.db
+    const userParticipations = await ctx.db
       .query("challenge_participants")
       .withIndex("by_user", q => q.eq("userId", currentUser._id))
       .collect()
 
-    const challengeIds = participants.map(p => p.challengeId)
+    const challengeIds = userParticipations.map(p => p.challengeId)
 
-    // Get challenge details
+    // Batch fetch all challenges at once
+    const challengesData = await Promise.all(
+      challengeIds.map(id => ctx.db.get(id))
+    )
+
+    // Get unique creator IDs
+    const creatorIds = [
+      ...new Set(challengesData.filter(c => c !== null).map(c => c!.creatorId)),
+    ]
+
+    // Batch fetch all creators
+    const creatorsData = await Promise.all(creatorIds.map(id => ctx.db.get(id)))
+    const creatorsMap = new Map(
+      creatorsData.filter(c => c !== null).map(c => [c!._id, c])
+    )
+
+    // Build challenges with details
     const challenges = await Promise.all(
-      challengeIds.map(async challengeId => {
-        const challenge = await ctx.db.get(challengeId)
+      challengesData.map(async (challenge, index) => {
         if (!challenge) return null
 
-        // Get exercises for this challenge
-        const exercises = await ctx.db
-          .query("exercises")
-          .withIndex("by_challenge", q => q.eq("challengeId", challengeId))
-          .collect()
+        const challengeId = challengeIds[index]
 
-        // Get participant count
-        const allParticipants = await ctx.db
-          .query("challenge_participants")
-          .withIndex("by_challenge", q => q.eq("challengeId", challengeId))
-          .collect()
-
-        // Get creator info
-        const creator = await ctx.db.get(challenge.creatorId)
+        // Get exercises and participant count in parallel
+        const [exercises, allParticipants] = await Promise.all([
+          ctx.db
+            .query("exercises")
+            .withIndex("by_challenge", q => q.eq("challengeId", challengeId))
+            .collect(),
+          ctx.db
+            .query("challenge_participants")
+            .withIndex("by_challenge", q => q.eq("challengeId", challengeId))
+            .collect(),
+        ])
 
         return {
           ...challenge,
           exercises,
           participantCount: allParticipants.length,
-          creator,
-          userStatus: participants.find(p => p.challengeId === challengeId)
-            ?.status,
+          creator: creatorsMap.get(challenge.creatorId) || null,
+          userStatus: userParticipations.find(
+            p => p.challengeId === challengeId
+          )?.status,
         }
       })
     )
@@ -344,6 +365,7 @@ export const updateExerciseProgress = mutation({
     exerciseId: v.id("exercises"),
     completedReps: v.number(),
   },
+  returns: v.id("exercise_progress"),
   handler: async (ctx, { exerciseId, completedReps }) => {
     const currentUser = await getCurrentUser(ctx)
 
@@ -392,5 +414,517 @@ export const updateExerciseProgress = mutation({
         completedReps,
       })
     }
+  },
+})
+
+// Get user's current streak (consecutive days with 100% challenge completion)
+export const getUserStreak = query({
+  args: { timezone: v.optional(v.string()) },
+  returns: v.object({
+    currentStreak: v.number(),
+    longestStreak: v.number(),
+    lastCompletedDate: v.union(v.string(), v.null()),
+  }),
+  handler: async (ctx, { timezone }) => {
+    const currentUser = await getCurrentUser(ctx)
+
+    // Get all challenges where user is a participant
+    const participations = await ctx.db
+      .query("challenge_participants")
+      .withIndex("by_user", q => q.eq("userId", currentUser._id))
+      .collect()
+
+    const challengeIds = participations.map(p => p.challengeId)
+
+    // Get challenge details and calculate completion status for each
+    const completedDates: Set<string> = new Set()
+
+    for (const challengeId of challengeIds) {
+      const challenge = await ctx.db.get(challengeId)
+      if (!challenge || challenge.status !== "active") continue
+
+      // Get exercises for this challenge
+      const exercises = await ctx.db
+        .query("exercises")
+        .withIndex("by_challenge", q => q.eq("challengeId", challengeId))
+        .collect()
+
+      if (exercises.length === 0) continue
+
+      // Get user's progress for all exercises in this challenge
+      let totalTarget = 0
+      let totalCompleted = 0
+
+      for (const exercise of exercises) {
+        totalTarget += exercise.targetReps
+
+        const progress = await ctx.db
+          .query("exercise_progress")
+          .withIndex("by_exercise_and_user", q =>
+            q.eq("exerciseId", exercise._id).eq("userId", currentUser._id)
+          )
+          .first()
+
+        if (progress) {
+          totalCompleted += Math.min(
+            progress.completedReps,
+            exercise.targetReps
+          )
+        }
+      }
+
+      // Mark date as completed if user achieved 100%
+      if (totalCompleted >= totalTarget) {
+        completedDates.add(challenge.date)
+      }
+    }
+
+    // Sort dates in descending order
+    const sortedDates = Array.from(completedDates).sort(
+      (a, b) => new Date(b).getTime() - new Date(a).getTime()
+    )
+
+    // Calculate current streak
+    let currentStreak = 0
+    const today = timezone
+      ? getTodayDateFromTimezone(timezone)
+      : new Date().toISOString().split("T")[0]
+
+    // Start from today and count backwards
+    const todayDate = new Date(today)
+
+    for (let i = 0; i <= sortedDates.length; i++) {
+      const checkDate = new Date(todayDate)
+      checkDate.setDate(checkDate.getDate() - i)
+      const checkDateStr = checkDate.toISOString().split("T")[0]
+
+      if (completedDates.has(checkDateStr)) {
+        currentStreak++
+      } else if (i > 0) {
+        // Allow today to be incomplete, but break if past day is missing
+        break
+      }
+    }
+
+    // Calculate longest streak
+    let longestStreak = 0
+    let tempStreak = 0
+    let lastDate: Date | null = null
+
+    for (const dateStr of sortedDates) {
+      const currentDate = new Date(dateStr)
+
+      if (lastDate === null) {
+        tempStreak = 1
+      } else {
+        const dayDiff = Math.round(
+          (lastDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24)
+        )
+        if (dayDiff === 1) {
+          tempStreak++
+        } else {
+          longestStreak = Math.max(longestStreak, tempStreak)
+          tempStreak = 1
+        }
+      }
+
+      lastDate = currentDate
+    }
+    longestStreak = Math.max(longestStreak, tempStreak)
+
+    return {
+      currentStreak,
+      longestStreak,
+      lastCompletedDate: sortedDates[0] || null,
+    }
+  },
+})
+
+// Get pending challenge invitations for the current user
+export const getPendingInvitations = query({
+  args: {},
+  returns: v.array(
+    v.object({
+      participantId: v.id("challenge_participants"),
+      challengeId: v.id("challenges"),
+      challengeName: v.string(),
+      date: v.string(),
+      creatorName: v.string(),
+      exerciseCount: v.number(),
+      participantCount: v.number(),
+    })
+  ),
+  handler: async ctx => {
+    const currentUser = await getCurrentUser(ctx)
+
+    // Get all invited participations for the current user
+    const invitations = await ctx.db
+      .query("challenge_participants")
+      .withIndex("by_user", q => q.eq("userId", currentUser._id))
+      .collect()
+
+    const pendingInvitations = invitations.filter(p => p.status === "invited")
+
+    // Get challenge details for each invitation
+    const invitationsWithDetails = await Promise.all(
+      pendingInvitations.map(async invitation => {
+        const challenge = await ctx.db.get(invitation.challengeId)
+        if (!challenge) return null
+
+        const creator = await ctx.db.get(challenge.creatorId)
+
+        const exercises = await ctx.db
+          .query("exercises")
+          .withIndex("by_challenge", q =>
+            q.eq("challengeId", invitation.challengeId)
+          )
+          .collect()
+
+        const participants = await ctx.db
+          .query("challenge_participants")
+          .withIndex("by_challenge", q =>
+            q.eq("challengeId", invitation.challengeId)
+          )
+          .collect()
+
+        return {
+          participantId: invitation._id,
+          challengeId: challenge._id,
+          challengeName: challenge.name,
+          date: challenge.date,
+          creatorName: creator?.name || "Unknown",
+          exerciseCount: exercises.length,
+          participantCount: participants.length,
+        }
+      })
+    )
+
+    return invitationsWithDetails.filter(
+      (inv): inv is NonNullable<typeof inv> => inv !== null
+    )
+  },
+})
+
+// Accept a challenge invitation
+export const acceptChallengeInvitation = mutation({
+  args: {
+    participantId: v.id("challenge_participants"),
+  },
+  returns: v.null(),
+  handler: async (ctx, { participantId }) => {
+    const currentUser = await getCurrentUser(ctx)
+
+    // Get the participation record
+    const participation = await ctx.db.get(participantId)
+    if (!participation) {
+      throw new Error("Invitation not found")
+    }
+
+    // Verify the invitation belongs to the current user
+    if (participation.userId !== currentUser._id) {
+      throw new Error("You are not authorized to accept this invitation")
+    }
+
+    // Verify the participation is still in "invited" status
+    if (participation.status !== "invited") {
+      throw new Error("This invitation has already been processed")
+    }
+
+    // Update status to active
+    await ctx.db.patch(participantId, {
+      status: "active",
+    })
+
+    // Send notification to challenge creator
+    const challenge = await ctx.db.get(participation.challengeId)
+    if (challenge) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.notifications.createNotification,
+        {
+          userId: challenge.creatorId,
+          message: `${currentUser.name} accepted your invitation to "${challenge.name}"`,
+          type: "info" as const,
+        }
+      )
+    }
+
+    return null
+  },
+})
+
+// Decline a challenge invitation
+export const declineChallengeInvitation = mutation({
+  args: {
+    participantId: v.id("challenge_participants"),
+  },
+  returns: v.null(),
+  handler: async (ctx, { participantId }) => {
+    const currentUser = await getCurrentUser(ctx)
+
+    // Get the participation record
+    const participation = await ctx.db.get(participantId)
+    if (!participation) {
+      throw new Error("Invitation not found")
+    }
+
+    // Verify the invitation belongs to the current user
+    if (participation.userId !== currentUser._id) {
+      throw new Error("You are not authorized to decline this invitation")
+    }
+
+    // Verify the participation is still in "invited" status
+    if (participation.status !== "invited") {
+      throw new Error("This invitation has already been processed")
+    }
+
+    // Delete the participation record
+    await ctx.db.delete(participantId)
+
+    // Send notification to challenge creator
+    const challenge = await ctx.db.get(participation.challengeId)
+    if (challenge) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.notifications.createNotification,
+        {
+          userId: challenge.creatorId,
+          message: `${currentUser.name} declined your invitation to "${challenge.name}"`,
+          type: "info" as const,
+        }
+      )
+    }
+
+    return null
+  },
+})
+
+// Delete a challenge (only creator can delete)
+export const deleteChallenge = mutation({
+  args: {
+    challengeId: v.id("challenges"),
+  },
+  returns: v.null(),
+  handler: async (ctx, { challengeId }) => {
+    const currentUser = await getCurrentUser(ctx)
+
+    // Get the challenge
+    const challenge = await ctx.db.get(challengeId)
+    if (!challenge) {
+      throw new Error("Challenge not found")
+    }
+
+    // Verify the current user is the creator
+    if (challenge.creatorId !== currentUser._id) {
+      throw new Error("Only the challenge creator can delete this challenge")
+    }
+
+    // Get all participants to notify them
+    const participants = await ctx.db
+      .query("challenge_participants")
+      .withIndex("by_challenge", q => q.eq("challengeId", challengeId))
+      .collect()
+
+    // Delete all exercise progress for this challenge
+    const progress = await ctx.db
+      .query("exercise_progress")
+      .withIndex("by_challenge_and_user", q => q.eq("challengeId", challengeId))
+      .collect()
+
+    for (const p of progress) {
+      await ctx.db.delete(p._id)
+    }
+
+    // Delete all exercises
+    const exercises = await ctx.db
+      .query("exercises")
+      .withIndex("by_challenge", q => q.eq("challengeId", challengeId))
+      .collect()
+
+    for (const exercise of exercises) {
+      await ctx.db.delete(exercise._id)
+    }
+
+    // Delete all participants
+    for (const participant of participants) {
+      await ctx.db.delete(participant._id)
+
+      // Notify other participants (not the creator)
+      if (participant.userId !== currentUser._id) {
+        await ctx.scheduler.runAfter(
+          0,
+          internal.notifications.createNotification,
+          {
+            userId: participant.userId,
+            message: `Challenge "${challenge.name}" has been cancelled by ${currentUser.name}`,
+            type: "info" as const,
+          }
+        )
+      }
+    }
+
+    // Delete the challenge
+    await ctx.db.delete(challengeId)
+
+    return null
+  },
+})
+
+// Get past challenges with user's performance
+export const getPastChallenges = query({
+  args: { timezone: v.optional(v.string()) },
+  returns: v.array(
+    v.object({
+      _id: v.id("challenges"),
+      name: v.string(),
+      date: v.string(),
+      totalExercises: v.number(),
+      userCompletedReps: v.number(),
+      userTotalTarget: v.number(),
+      completionPercentage: v.number(),
+      participantCount: v.number(),
+      isCompleted: v.boolean(),
+    })
+  ),
+  handler: async (ctx, { timezone }) => {
+    const currentUser = await getCurrentUser(ctx)
+
+    const today = timezone
+      ? getTodayDateFromTimezone(timezone)
+      : new Date().toISOString().split("T")[0]
+
+    // Get all participations for the user
+    const participations = await ctx.db
+      .query("challenge_participants")
+      .withIndex("by_user", q => q.eq("userId", currentUser._id))
+      .collect()
+
+    const challengeIds = participations.map(p => p.challengeId)
+
+    // Get challenge details
+    const pastChallenges = []
+
+    for (const challengeId of challengeIds) {
+      const challenge = await ctx.db.get(challengeId)
+      if (!challenge) continue
+
+      // Only include past challenges (before today)
+      if (challenge.date >= today) continue
+
+      // Get exercises
+      const exercises = await ctx.db
+        .query("exercises")
+        .withIndex("by_challenge", q => q.eq("challengeId", challengeId))
+        .collect()
+
+      // Calculate user's performance
+      let userCompletedReps = 0
+      let userTotalTarget = 0
+
+      for (const exercise of exercises) {
+        userTotalTarget += exercise.targetReps
+
+        const progress = await ctx.db
+          .query("exercise_progress")
+          .withIndex("by_exercise_and_user", q =>
+            q.eq("exerciseId", exercise._id).eq("userId", currentUser._id)
+          )
+          .first()
+
+        if (progress) {
+          userCompletedReps += Math.min(
+            progress.completedReps,
+            exercise.targetReps
+          )
+        }
+      }
+
+      const completionPercentage =
+        userTotalTarget > 0
+          ? Math.round((userCompletedReps / userTotalTarget) * 100)
+          : 0
+
+      // Get participant count
+      const participants = await ctx.db
+        .query("challenge_participants")
+        .withIndex("by_challenge", q => q.eq("challengeId", challengeId))
+        .collect()
+
+      pastChallenges.push({
+        _id: challenge._id,
+        name: challenge.name,
+        date: challenge.date,
+        totalExercises: exercises.length,
+        userCompletedReps,
+        userTotalTarget,
+        completionPercentage,
+        participantCount: participants.length,
+        isCompleted: completionPercentage === 100,
+      })
+    }
+
+    // Sort by date descending (most recent first)
+    return pastChallenges.sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    )
+  },
+})
+
+// Leave a challenge (for participants who are not the creator)
+export const leaveChallenge = mutation({
+  args: {
+    challengeId: v.id("challenges"),
+  },
+  returns: v.null(),
+  handler: async (ctx, { challengeId }) => {
+    const currentUser = await getCurrentUser(ctx)
+
+    // Get the challenge
+    const challenge = await ctx.db.get(challengeId)
+    if (!challenge) {
+      throw new Error("Challenge not found")
+    }
+
+    // Creator cannot leave their own challenge (they should delete it instead)
+    if (challenge.creatorId === currentUser._id) {
+      throw new Error(
+        "Challenge creators cannot leave. Delete the challenge instead."
+      )
+    }
+
+    // Find the participant record
+    const participation = await ctx.db
+      .query("challenge_participants")
+      .withIndex("by_challenge", q => q.eq("challengeId", challengeId))
+      .filter(q => q.eq(q.field("userId"), currentUser._id))
+      .first()
+
+    if (!participation) {
+      throw new Error("You are not a participant in this challenge")
+    }
+
+    // Delete exercise progress for this user in this challenge
+    const progress = await ctx.db
+      .query("exercise_progress")
+      .withIndex("by_challenge_and_user", q =>
+        q.eq("challengeId", challengeId).eq("userId", currentUser._id)
+      )
+      .collect()
+
+    for (const p of progress) {
+      await ctx.db.delete(p._id)
+    }
+
+    // Delete the participant record
+    await ctx.db.delete(participation._id)
+
+    // Notify the creator
+    await ctx.scheduler.runAfter(0, internal.notifications.createNotification, {
+      userId: challenge.creatorId,
+      message: `${currentUser.name} left your challenge "${challenge.name}"`,
+      type: "info" as const,
+    })
+
+    return null
   },
 })
