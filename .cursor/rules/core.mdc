@@ -130,3 +130,49 @@ if (data === undefined) {
   return <DashboardSkeleton />
 }
 ```
+
+### Convex Query States: `undefined` vs `null`
+
+**CRITICAL: Never coerce Convex query results with `|| undefined` or `|| null`.**
+
+Convex `useQuery` returns three distinct states:
+
+| State | Value | Meaning |
+|-------|-------|---------|
+| Loading | `undefined` | Query hasn't returned yet |
+| No data | `null` | Query completed, no results found |
+| Has data | `[...]` or `{...}` | Query completed with data |
+
+**WRONG - conflates loading and no-data:**
+
+```tsx
+// BAD: || treats both null and undefined as falsy
+<MyComponent data={queryResult || undefined} />
+
+// BAD: This makes "no data" look like "still loading"
+if (data === undefined) return <Skeleton />  // Will show skeleton for null too!
+```
+
+**CORRECT - handle all three states explicitly:**
+
+```tsx
+// GOOD: Pass query result directly, accept null in prop types
+interface Props {
+  data: MyData[] | null | undefined  // Accept all three states
+}
+
+// GOOD: Handle states explicitly in component
+if (data === undefined) {
+  return <Skeleton />  // Loading
+}
+if (data === null || data.length === 0) {
+  return <EmptyState />  // No data
+}
+return <DataView data={data} />  // Has data
+```
+
+When passing Convex query results as props:
+1. **Never coerce** - pass the value directly
+2. **Type props to accept `| null | undefined`** - forces explicit handling
+3. **Check `=== undefined` for loading** - not falsy checks
+4. **Check `=== null` for no-data** - distinct from loading

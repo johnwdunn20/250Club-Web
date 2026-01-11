@@ -11,6 +11,7 @@
 import type * as challenges from "../challenges.js";
 import type * as friendships from "../friendships.js";
 import type * as notifications from "../notifications.js";
+import type * as seed from "../seed.js";
 import type * as users from "../users.js";
 import type * as utils from "../utils.js";
 
@@ -24,6 +25,7 @@ declare const fullApi: ApiFromModules<{
   challenges: typeof challenges;
   friendships: typeof friendships;
   notifications: typeof notifications;
+  seed: typeof seed;
   users: typeof users;
   utils: typeof utils;
 }>;
