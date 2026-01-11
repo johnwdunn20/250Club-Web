@@ -15,6 +15,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
 import type { Friends, FriendRequests, SentRequests } from "@/types/convex"
 
 interface FindFriendsProps {
@@ -142,12 +146,12 @@ export default function FindFriends({
 
         {/* Search bar */}
         <div className="relative mb-6">
-          <input
+          <Input
             type="text"
             placeholder="Search by username or email..."
             value={searchTerm}
             onChange={e => handleSearch(e.target.value)}
-            className="w-full px-4 py-3 pl-10 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground placeholder:text-muted-foreground"
+            className="pl-10 h-11"
           />
           <svg
             className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground"
@@ -175,10 +179,10 @@ export default function FindFriends({
                 {[...Array(3)].map((_, i) => (
                   <div
                     key={i}
-                    className="p-4 bg-muted/30 rounded-lg border border-border animate-pulse"
+                    className="p-4 bg-muted/30 rounded-lg border border-border"
                   >
-                    <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
-                    <div className="h-3 bg-muted rounded w-1/2"></div>
+                    <Skeleton className="h-4 w-3/4 mb-2" />
+                    <Skeleton className="h-3 w-1/2" />
                   </div>
                 ))}
               </div>
@@ -195,12 +199,12 @@ export default function FindFriends({
                         {user.email}
                       </p>
                     </div>
-                    <button
+                    <Button
+                      size="sm"
                       onClick={() => handleSendFriendRequest(user._id)}
-                      className="px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors"
                     >
                       Add Friend
-                    </button>
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -237,25 +241,77 @@ export default function FindFriends({
                     {friendship.friend?.email}
                   </p>
                 </div>
-                <button
+                <Button
+                  variant="destructive"
+                  size="sm"
                   onClick={() =>
                     handleRemoveFriend(
                       friendship.friendId,
                       friendship.friend?.name || "this friend"
                     )
                   }
-                  className="px-3 py-1 bg-destructive text-destructive-foreground text-sm font-medium rounded-lg hover:bg-destructive/90 transition-colors"
                 >
                   Remove
-                </button>
+                </Button>
               </div>
             ))
           ) : (
-            <div className="p-6 bg-muted/30 rounded-lg border border-border text-center">
-              <div className="text-4xl mb-2">👥</div>
-              <p className="text-sm text-muted-foreground">
-                No friends yet. Invite your friends to join!
-              </p>
+            <div className="p-6 bg-muted/30 rounded-lg border border-border">
+              <div className="text-center mb-6">
+                <div className="text-4xl mb-3">👥</div>
+                <h4 className="font-semibold text-foreground mb-2">
+                  No friends yet
+                </h4>
+                <p className="text-sm text-muted-foreground">
+                  Add friends to get the most out of 250 Club!
+                </p>
+              </div>
+
+              {/* Why friends matter */}
+              <div className="space-y-2 mb-6">
+                <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <span className="text-base">🏆</span>
+                  <span>
+                    Challenge friends to daily workouts and compete together
+                  </span>
+                </div>
+                <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <span className="text-base">👀</span>
+                  <span>
+                    See when friends complete challenges for motivation
+                  </span>
+                </div>
+                <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <span className="text-base">📊</span>
+                  <span>Track progress on a shared leaderboard</span>
+                </div>
+              </div>
+
+              {/* Invite link */}
+              <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
+                <p className="text-sm font-medium text-foreground mb-2">
+                  Invite friends to join 250 Club
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    type="text"
+                    readOnly
+                    value="https://250club.johnwdunn.com/"
+                    className="flex-1 text-sm text-muted-foreground"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(
+                        "https://250club.johnwdunn.com/"
+                      )
+                      toast.success("Link copied to clipboard!")
+                    }}
+                  >
+                    Copy
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -266,9 +322,7 @@ export default function FindFriends({
         <h3 className="text-xl font-bold text-foreground mb-4">
           Pending Requests
           {pendingRequests && pendingRequests.length > 0 && (
-            <span className="ml-2 px-2 py-1 bg-primary text-primary-foreground text-xs font-medium rounded-full">
-              {pendingRequests.length}
-            </span>
+            <Badge className="ml-2">{pendingRequests.length}</Badge>
           )}
         </h3>
         <div className="space-y-3">
@@ -289,18 +343,21 @@ export default function FindFriends({
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button
+                  <Button
+                    size="sm"
+                    className="flex-1"
                     onClick={() => handleAcceptRequest(request._id)}
-                    className="flex-1 px-3 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors"
                   >
                     Accept
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="flex-1"
                     onClick={() => handleRejectRequest(request._id)}
-                    className="flex-1 px-3 py-2 bg-destructive text-destructive-foreground text-sm font-medium rounded-lg hover:bg-destructive/90 transition-colors"
                   >
                     Reject
-                  </button>
+                  </Button>
                 </div>
               </div>
             ))
@@ -334,12 +391,13 @@ export default function FindFriends({
                     {request.friend?.email}
                   </p>
                 </div>
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => handleCancelRequest(request._id)}
-                  className="px-3 py-1 bg-muted text-muted-foreground text-sm font-medium rounded-lg hover:bg-destructive hover:text-destructive-foreground transition-colors"
                 >
                   Cancel
-                </button>
+                </Button>
               </div>
             ))
           ) : (

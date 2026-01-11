@@ -238,14 +238,12 @@ export const getChallenge = query({
 
 // Get today's challenges for the current user
 export const getTodaysChallenge = query({
-  args: { timezone: v.optional(v.string()) },
+  args: { timezone: v.string() },
   handler: async (ctx, { timezone }) => {
     const currentUser = await getCurrentUser(ctx)
 
-    // Get today's date in YYYY-MM-DD format (user's timezone if provided, otherwise UTC fallback)
-    const today = timezone
-      ? getTodayDateFromTimezone(timezone)
-      : new Date().toISOString().split("T")[0]
+    // Get today's date in YYYY-MM-DD format (user's timezone)
+    const today = getTodayDateFromTimezone(timezone)
 
     // Find challenges for today where user is a participant
     const participants = await ctx.db
@@ -419,7 +417,7 @@ export const updateExerciseProgress = mutation({
 
 // Get user's current streak (consecutive days with 100% challenge completion)
 export const getUserStreak = query({
-  args: { timezone: v.optional(v.string()) },
+  args: { timezone: v.string() },
   returns: v.object({
     currentStreak: v.number(),
     longestStreak: v.number(),
@@ -486,9 +484,7 @@ export const getUserStreak = query({
 
     // Calculate current streak
     let currentStreak = 0
-    const today = timezone
-      ? getTodayDateFromTimezone(timezone)
-      : new Date().toISOString().split("T")[0]
+    const today = getTodayDateFromTimezone(timezone)
 
     // Start from today and count backwards
     const todayDate = new Date(today)
@@ -772,7 +768,7 @@ export const deleteChallenge = mutation({
 
 // Get past challenges with user's performance
 export const getPastChallenges = query({
-  args: { timezone: v.optional(v.string()) },
+  args: { timezone: v.string() },
   returns: v.array(
     v.object({
       _id: v.id("challenges"),
@@ -789,9 +785,7 @@ export const getPastChallenges = query({
   handler: async (ctx, { timezone }) => {
     const currentUser = await getCurrentUser(ctx)
 
-    const today = timezone
-      ? getTodayDateFromTimezone(timezone)
-      : new Date().toISOString().split("T")[0]
+    const today = getTodayDateFromTimezone(timezone)
 
     // Get all participations for the user
     const participations = await ctx.db
@@ -867,6 +861,284 @@ export const getPastChallenges = query({
     return pastChallenges.sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
     )
+  },
+})
+
+// Get friend activity - recent challenge completions from friends
+export const getFriendActivity = query({
+  args: { timezone: v.string() },
+  returns: v.array(
+    v.object({
+      friendId: v.id("users"),
+      friendName: v.string(),
+      challengeId: v.id("challenges"),
+      challengeName: v.string(),
+      completedAt: v.union(v.number(), v.null()),
+      completionPercentage: v.number(),
+      isToday: v.boolean(),
+    })
+  ),
+  handler: async (ctx, { timezone }) => {
+    const currentUser = await getCurrentUser(ctx)
+
+    const today = getTodayDateFromTimezone(timezone)
+
+    // Get the date for 48 hours ago
+    const todayDate = new Date(today + "T00:00:00")
+    const twoDaysAgo = new Date(todayDate)
+    twoDaysAgo.setDate(todayDate.getDate() - 2)
+    const twoDaysAgoStr = twoDaysAgo.toISOString().split("T")[0]
+
+    // Get all friends
+    const friendships = await ctx.db
+      .query("friendships")
+      .withIndex("by_user", q => q.eq("userId", currentUser._id))
+      .collect()
+
+    if (friendships.length === 0) {
+      return []
+    }
+
+    const friendIds = friendships.map(f => f.friendId)
+
+    // Get friend activity
+    const activity: Array<{
+      friendId: typeof currentUser._id
+      friendName: string
+      challengeId: (typeof currentUser._id extends never ? never : string) &
+        string & { __tableName: "challenges" }
+      challengeName: string
+      completedAt: number | null
+      completionPercentage: number
+      isToday: boolean
+    }> = []
+
+    for (const friendId of friendIds) {
+      const friend = await ctx.db.get(friendId)
+      if (!friend) continue
+
+      // Get friend's recent challenge participations
+      const participations = await ctx.db
+        .query("challenge_participants")
+        .withIndex("by_user", q => q.eq("userId", friendId))
+        .collect()
+
+      for (const participation of participations) {
+        if (participation.status !== "active") continue
+
+        const challenge = await ctx.db.get(participation.challengeId)
+        if (!challenge || challenge.status !== "active") continue
+
+        // Only include recent challenges (within last 2 days including today)
+        if (challenge.date < twoDaysAgoStr || challenge.date > today) continue
+
+        // Calculate friend's completion percentage for this challenge
+        const exercises = await ctx.db
+          .query("exercises")
+          .withIndex("by_challenge", q =>
+            q.eq("challengeId", participation.challengeId)
+          )
+          .collect()
+
+        if (exercises.length === 0) continue
+
+        let totalTarget = 0
+        let totalCompleted = 0
+        let lastProgressTime: number | null = null
+
+        for (const exercise of exercises) {
+          totalTarget += exercise.targetReps
+
+          const progress = await ctx.db
+            .query("exercise_progress")
+            .withIndex("by_exercise_and_user", q =>
+              q.eq("exerciseId", exercise._id).eq("userId", friendId)
+            )
+            .first()
+
+          if (progress) {
+            totalCompleted += Math.min(
+              progress.completedReps,
+              exercise.targetReps
+            )
+            // Track the most recent progress update
+            if (progress._creationTime) {
+              if (
+                !lastProgressTime ||
+                progress._creationTime > lastProgressTime
+              ) {
+                lastProgressTime = progress._creationTime
+              }
+            }
+          }
+        }
+
+        const completionPercentage =
+          totalTarget > 0 ? Math.round((totalCompleted / totalTarget) * 100) : 0
+
+        // Only show if friend has made some progress (at least 10%)
+        if (completionPercentage >= 10) {
+          activity.push({
+            friendId: friend._id,
+            friendName: friend.name,
+            challengeId: challenge._id,
+            challengeName: challenge.name,
+            completedAt: lastProgressTime,
+            completionPercentage,
+            isToday: challenge.date === today,
+          })
+        }
+      }
+    }
+
+    // Sort by completion percentage (highest first), then by recency
+    return activity
+      .sort((a, b) => {
+        // Prioritize 100% completions
+        if (a.completionPercentage === 100 && b.completionPercentage !== 100)
+          return -1
+        if (b.completionPercentage === 100 && a.completionPercentage !== 100)
+          return 1
+        // Then by recency
+        return (b.completedAt || 0) - (a.completedAt || 0)
+      })
+      .slice(0, 10)
+  },
+})
+
+// Get weekly progress for the current user (challenges completed this week)
+export const getWeeklyProgress = query({
+  args: { timezone: v.string() },
+  returns: v.object({
+    daysWithChallenges: v.array(
+      v.object({
+        date: v.string(),
+        isCompleted: v.boolean(),
+        challengeCount: v.number(),
+      })
+    ),
+    totalChallengesThisWeek: v.number(),
+    completedChallengesThisWeek: v.number(),
+    weekStart: v.string(),
+    weekEnd: v.string(),
+  }),
+  handler: async (ctx, { timezone }) => {
+    const currentUser = await getCurrentUser(ctx)
+
+    const today = getTodayDateFromTimezone(timezone)
+    const todayDate = new Date(today + "T00:00:00")
+
+    // Get start of week (Sunday)
+    const dayOfWeek = todayDate.getDay()
+    const weekStart = new Date(todayDate)
+    weekStart.setDate(todayDate.getDate() - dayOfWeek)
+
+    // Get end of week (Saturday)
+    const weekEnd = new Date(weekStart)
+    weekEnd.setDate(weekStart.getDate() + 6)
+
+    const weekStartStr = weekStart.toISOString().split("T")[0]
+    const weekEndStr = weekEnd.toISOString().split("T")[0]
+
+    // Get all participations for the user
+    const participations = await ctx.db
+      .query("challenge_participants")
+      .withIndex("by_user", q => q.eq("userId", currentUser._id))
+      .collect()
+
+    const challengeIds = participations.map(p => p.challengeId)
+
+    // Track challenges by date
+    const dateMap: Map<string, { challenges: number; completed: number }> =
+      new Map()
+
+    // Initialize all days of the week
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(weekStart)
+      date.setDate(weekStart.getDate() + i)
+      const dateStr = date.toISOString().split("T")[0]
+      dateMap.set(dateStr, { challenges: 0, completed: 0 })
+    }
+
+    // Process each challenge
+    for (const challengeId of challengeIds) {
+      const challenge = await ctx.db.get(challengeId)
+      if (!challenge || challenge.status !== "active") continue
+
+      // Only include challenges within this week
+      if (challenge.date < weekStartStr || challenge.date > weekEndStr) continue
+
+      // Get exercises for this challenge
+      const exercises = await ctx.db
+        .query("exercises")
+        .withIndex("by_challenge", q => q.eq("challengeId", challengeId))
+        .collect()
+
+      if (exercises.length === 0) continue
+
+      // Calculate user's completion for this challenge
+      let totalTarget = 0
+      let totalCompleted = 0
+
+      for (const exercise of exercises) {
+        totalTarget += exercise.targetReps
+
+        const progress = await ctx.db
+          .query("exercise_progress")
+          .withIndex("by_exercise_and_user", q =>
+            q.eq("exerciseId", exercise._id).eq("userId", currentUser._id)
+          )
+          .first()
+
+        if (progress) {
+          totalCompleted += Math.min(
+            progress.completedReps,
+            exercise.targetReps
+          )
+        }
+      }
+
+      const isCompleted = totalCompleted >= totalTarget
+      const dayData = dateMap.get(challenge.date)
+      if (dayData) {
+        dayData.challenges++
+        if (isCompleted) {
+          dayData.completed++
+        }
+      }
+    }
+
+    // Build response
+    const daysWithChallenges: Array<{
+      date: string
+      isCompleted: boolean
+      challengeCount: number
+    }> = []
+    let totalChallengesThisWeek = 0
+    let completedChallengesThisWeek = 0
+
+    for (const [date, data] of dateMap) {
+      daysWithChallenges.push({
+        date,
+        isCompleted: data.challenges > 0 && data.completed === data.challenges,
+        challengeCount: data.challenges,
+      })
+      totalChallengesThisWeek += data.challenges
+      completedChallengesThisWeek += data.completed
+    }
+
+    // Sort by date
+    daysWithChallenges.sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    )
+
+    return {
+      daysWithChallenges,
+      totalChallengesThisWeek,
+      completedChallengesThisWeek,
+      weekStart: weekStartStr,
+      weekEnd: weekEndStr,
+    }
   },
 })
 

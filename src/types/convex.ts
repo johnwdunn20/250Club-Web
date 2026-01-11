@@ -86,6 +86,30 @@ export type PendingInvitation = {
   participantCount: number
 }
 
+// Friend activity type
+export type FriendActivity = {
+  friendId: Id<"users">
+  friendName: string
+  challengeId: Id<"challenges">
+  challengeName: string
+  completedAt: number | null
+  completionPercentage: number
+  isToday: boolean
+}
+
+// Weekly progress type
+export type WeeklyProgress = {
+  daysWithChallenges: {
+    date: string
+    isCompleted: boolean
+    challengeCount: number
+  }[]
+  totalChallengesThisWeek: number
+  completedChallengesThisWeek: number
+  weekStart: string
+  weekEnd: string
+}
+
 // Array types for convenience
 export type Friends = Friend[]
 export type FriendRequests = FriendRequest[]

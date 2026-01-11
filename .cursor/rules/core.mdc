@@ -27,8 +27,10 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 
 // Use cn() for conditional classes
 import { cn } from "@/lib/utils"
-
-<Button className={cn("w-full", isLoading && "opacity-50")} disabled={isLoading}>
+;<Button
+  className={cn("w-full", isLoading && "opacity-50")}
+  disabled={isLoading}
+>
   {isLoading ? "Loading..." : "Submit"}
 </Button>
 ```
@@ -45,7 +47,7 @@ import { getCurrentUser } from "./utils"
 export const myFunction = query({
   args: {},
   returns: v.null(),
-  handler: async (ctx) => {
+  handler: async ctx => {
     const user = await getCurrentUser(ctx) // Handles auth check + user lookup
     // user is guaranteed to exist here
     return null
@@ -129,4 +131,131 @@ import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton"
 if (data === undefined) {
   return <DashboardSkeleton />
 }
+```
+
+### Convex Query States: `undefined` vs `null`
+
+**CRITICAL: Never coerce Convex query results with `|| undefined` or `|| null`.**
+
+Convex `useQuery` returns three distinct states:
+
+| State    | Value              | Meaning                           |
+| -------- | ------------------ | --------------------------------- |
+| Loading  | `undefined`        | Query hasn't returned yet         |
+| No data  | `null`             | Query completed, no results found |
+| Has data | `[...]` or `{...}` | Query completed with data         |
+
+**WRONG - conflates loading and no-data:**
+
+```tsx
+// BAD: || treats both null and undefined as falsy
+;<MyComponent data={queryResult || undefined} />
+
+// BAD: This makes "no data" look like "still loading"
+if (data === undefined) return <Skeleton /> // Will show skeleton for null too!
+```
+
+**CORRECT - handle all three states explicitly:**
+
+```tsx
+// GOOD: Pass query result directly, accept null in prop types
+interface Props {
+  data: MyData[] | null | undefined // Accept all three states
+}
+
+// GOOD: Handle states explicitly in component
+if (data === undefined) {
+  return <Skeleton /> // Loading
+}
+if (data === null || data.length === 0) {
+  return <EmptyState /> // No data
+}
+return <DataView data={data} /> // Has data
+```
+
+When passing Convex query results as props:
+
+1. **Never coerce** - pass the value directly
+2. **Type props to accept `| null | undefined`** - forces explicit handling
+3. **Check `=== undefined` for loading** - not falsy checks
+4. **Check `=== null` for no-data** - distinct from loading
+
+## Best Practices
+
+### Complex Conditional Classes
+
+For complex conditional styling, use helper functions instead of nested ternaries:
+
+```tsx
+// BAD: Hard to read and maintain
+className={`base ${condition1 ? "a" : condition2 ? "b" : condition3 ? "c" : "d"}`}
+
+// GOOD: Extract to helper function
+function getStatusClasses(item: Item): string {
+  if (item.isCompleted) return "bg-green-500 text-white"
+  if (item.isPending) return "bg-yellow-500 text-black"
+  if (item.isError) return "bg-red-500 text-white"
+  return "bg-muted text-muted-foreground"
+}
+
+// Usage
+className={`base ${getStatusClasses(item)}`}
+```
+
+### Performance in Loops
+
+Never calculate expensive values inside `.map()` or render loops:
+
+```tsx
+// BAD: Calculated N times per render
+{
+  items.map(item => {
+    const today = new Date().toISOString().split("T")[0]
+    return <div>{item.date === today && "Today"}</div>
+  })
+}
+
+// GOOD: Calculated once before loop
+const today = getTodayDate()
+{
+  items.map(item => <div>{item.date === today && "Today"}</div>)
+}
+```
+
+### Loading States: Always Show Skeletons
+
+**Never return `null` for loading states.** Always show a skeleton that matches the content layout:
+
+```tsx
+// BAD: Causes layout shift, poor UX
+if (data === undefined) return null
+
+// GOOD: Maintains layout, shows loading feedback
+if (data === undefined) {
+  return (
+    <div className="card-mobile">
+      <Skeleton className="h-8 w-48 mb-4" />
+      <Skeleton className="h-4 w-full mb-2" />
+      <Skeleton className="h-4 w-3/4" />
+    </div>
+  )
+}
+```
+
+### Accessibility for Custom Components
+
+When building custom interactive elements (progress bars, counters, etc.), add proper ARIA attributes:
+
+```tsx
+// Custom progress bar
+<div
+  role="progressbar"
+  aria-valuenow={percentage}
+  aria-valuemin={0}
+  aria-valuemax={100}
+  aria-label="Challenge progress"
+  className="h-3 bg-muted rounded-full overflow-hidden"
+>
+  <div style={{ width: `${percentage}%` }} />
+</div>
 ```

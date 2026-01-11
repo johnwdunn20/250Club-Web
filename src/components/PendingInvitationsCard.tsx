@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Id } from "../../convex/_generated/dataModel"
 import type { PendingInvitation } from "@/types/convex"
 import { Button } from "./ui/button"
+import { Badge } from "./ui/badge"
 
 interface PendingInvitationsCardProps {
   pendingInvitations: PendingInvitation[] | undefined
@@ -43,9 +44,7 @@ export default function PendingInvitationsCard({
       <h3 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
         <span className="text-2xl">📨</span>
         Challenge Invitations
-        <span className="px-2 py-1 bg-primary text-primary-foreground text-xs font-medium rounded-full">
-          {pendingInvitations.length}
-        </span>
+        <Badge>{pendingInvitations.length}</Badge>
       </h3>
       <div className="space-y-3">
         {pendingInvitations.map(invitation => (
