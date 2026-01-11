@@ -6,7 +6,7 @@ import { api } from "../../convex/_generated/api"
 import { Id } from "../../convex/_generated/dataModel"
 import { toast } from "sonner"
 import { Button } from "./ui/button"
-import { getTodayDate } from "@/lib/utils"
+import { getTodayDate, formatDateDisplayWithRelative } from "@/lib/utils"
 import type { Friends, UserChallenges } from "@/types/convex"
 import {
   AlertDialog,
@@ -40,6 +40,7 @@ interface NewChallengeProps {
   friends: Friends | undefined
   userChallenges: UserChallenges | undefined
   pastChallenges: PastChallenge[] | undefined
+  onNavigateToTab?: (tab: string) => void
 }
 
 // Preset exercise templates
@@ -96,6 +97,7 @@ export default function NewChallenge({
   friends,
   userChallenges,
   pastChallenges,
+  onNavigateToTab,
 }: NewChallengeProps) {
   const [challengeName, setChallengeName] = useState("")
   const [selectedDate, setSelectedDate] = useState(getTodayDate())
@@ -142,25 +144,6 @@ export default function NewChallenge({
 
   // Get today's date for min date validation
   const today = getTodayDate()
-
-  // Format date for display
-  const formatDateDisplay = (dateStr: string) => {
-    const date = new Date(dateStr + "T00:00:00")
-    const todayDate = new Date(today + "T00:00:00")
-    const tomorrowDate = new Date(todayDate)
-    tomorrowDate.setDate(tomorrowDate.getDate() + 1)
-
-    if (dateStr === today) {
-      return `Today (${date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })})`
-    } else if (dateStr === tomorrowDate.toISOString().split("T")[0]) {
-      return `Tomorrow (${date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })})`
-    }
-    return date.toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "short",
-      day: "numeric",
-    })
-  }
 
   const handleAddExercise = () => {
     setExercises([...exercises, { name: "", targetReps: 0 }])
@@ -343,7 +326,7 @@ export default function NewChallenge({
                 className="flex-1 px-4 py-3 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
               />
               <span className="text-sm text-muted-foreground hidden sm:block">
-                {formatDateDisplay(selectedDate)}
+                {formatDateDisplayWithRelative(selectedDate)}
               </span>
             </div>
             <div className="flex gap-2 mt-2">
@@ -480,10 +463,20 @@ export default function NewChallenge({
               </div>
             ) : (
               <div className="p-4 bg-muted/30 rounded-lg border border-border text-center">
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground mb-3">
                   No friends yet. Add friends first to invite them to
                   challenges.
                 </p>
+                {onNavigateToTab && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onNavigateToTab("friends")}
+                  >
+                    Find Friends
+                  </Button>
+                )}
               </div>
             )}
           </div>

@@ -1,7 +1,18 @@
 "use client"
 
+import { useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { useMutation } from "convex/react"
 import { api } from "../../convex/_generated/api"
 import { Id } from "../../convex/_generated/dataModel"
@@ -54,6 +65,11 @@ function getNotificationIcon(message: string): string {
 }
 
 export default function Notifications({ notifications }: NotificationsProps) {
+  const [showClearConfirm, setShowClearConfirm] = useState(false)
+  const [loadingId, setLoadingId] = useState<string | null>(null)
+  const [isMarkingAllRead, setIsMarkingAllRead] = useState(false)
+  const [isClearing, setIsClearing] = useState(false)
+
   const markAsRead = useMutation(api.notifications.markAsRead)
   const markAllAsRead = useMutation(api.notifications.markAllAsRead)
   const deleteNotification = useMutation(api.notifications.deleteNotification)
@@ -62,40 +78,53 @@ export default function Notifications({ notifications }: NotificationsProps) {
   )
 
   const handleMarkAsRead = async (notificationId: Id<"notifications">) => {
+    setLoadingId(`read-${notificationId}`)
     try {
       await markAsRead({ notificationId })
     } catch (error) {
       console.error("Failed to mark as read:", error)
       toast.error("Failed to mark notification as read")
+    } finally {
+      setLoadingId(null)
     }
   }
 
   const handleMarkAllAsRead = async () => {
+    setIsMarkingAllRead(true)
     try {
       await markAllAsRead({})
       toast.success("All notifications marked as read")
     } catch (error) {
       console.error("Failed to mark all as read:", error)
       toast.error("Failed to mark all as read")
+    } finally {
+      setIsMarkingAllRead(false)
     }
   }
 
   const handleDelete = async (notificationId: Id<"notifications">) => {
+    setLoadingId(`delete-${notificationId}`)
     try {
       await deleteNotification({ notificationId })
     } catch (error) {
       console.error("Failed to delete notification:", error)
       toast.error("Failed to delete notification")
+    } finally {
+      setLoadingId(null)
     }
   }
 
   const handleClearAll = async () => {
+    setIsClearing(true)
     try {
       await clearAllNotifications({})
+      setShowClearConfirm(false)
       toast.success("All notifications cleared")
     } catch (error) {
       console.error("Failed to clear all notifications:", error)
       toast.error("Failed to clear notifications")
+    } finally {
+      setIsClearing(false)
     }
   }
 
@@ -136,15 +165,43 @@ export default function Notifications({ notifications }: NotificationsProps) {
         </div>
         <div className="flex gap-2">
           {unreadCount > 0 && (
-            <Button variant="outline" size="sm" onClick={handleMarkAllAsRead}>
-              Mark all read
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleMarkAllAsRead}
+              disabled={isMarkingAllRead}
+            >
+              {isMarkingAllRead ? "Marking..." : "Mark all read"}
             </Button>
           )}
-          <Button variant="ghost" size="sm" onClick={handleClearAll}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowClearConfirm(true)}
+          >
             Clear all
           </Button>
         </div>
       </div>
+
+      {/* Clear All Confirmation Dialog */}
+      <AlertDialog open={showClearConfirm} onOpenChange={setShowClearConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear all notifications?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete all your notifications. This action
+              cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isClearing}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleClearAll} disabled={isClearing}>
+              {isClearing ? "Clearing..." : "Clear All"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <div className="space-y-3">
         {notifications.map(notification => (
@@ -177,8 +234,9 @@ export default function Notifications({ notifications }: NotificationsProps) {
                     size="sm"
                     onClick={() => handleMarkAsRead(notification._id)}
                     className="h-8 px-2 text-xs"
+                    disabled={loadingId !== null}
                   >
-                    ✓
+                    {loadingId === `read-${notification._id}` ? "..." : "✓"}
                   </Button>
                 )}
                 <Button
@@ -186,8 +244,9 @@ export default function Notifications({ notifications }: NotificationsProps) {
                   size="sm"
                   onClick={() => handleDelete(notification._id)}
                   className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive"
+                  disabled={loadingId !== null}
                 >
-                  ✕
+                  {loadingId === `delete-${notification._id}` ? "..." : "✕"}
                 </Button>
               </div>
             </div>

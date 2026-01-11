@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useMutation } from "convex/react"
 import { api } from "../../convex/_generated/api"
 import { Id } from "../../convex/_generated/dataModel"
@@ -8,36 +8,26 @@ import type {
   TodaysChallenges,
   Exercise,
   ChallengeParticipant,
+  StreakData,
+  PendingInvitation,
 } from "@/types/convex"
 import StreakCard from "./StreakCard"
+import PendingInvitationsCard from "./PendingInvitationsCard"
+import { Button } from "./ui/button"
 import { toast } from "sonner"
-
-interface StreakData {
-  currentStreak: number
-  longestStreak: number
-  lastCompletedDate: string | null
-}
-
-interface PendingInvitation {
-  participantId: Id<"challenge_participants">
-  challengeId: Id<"challenges">
-  challengeName: string
-  date: string
-  creatorName: string
-  exerciseCount: number
-  participantCount: number
-}
 
 interface TodaysWorkoutProps {
   todaysChallenges: TodaysChallenges | undefined
   streak: StreakData | undefined
   pendingInvitations: PendingInvitation[] | undefined
+  onNavigateToTab?: (tab: string) => void
 }
 
 export default function TodaysWorkout({
   todaysChallenges,
   streak,
   pendingInvitations,
+  onNavigateToTab,
 }: TodaysWorkoutProps) {
   const updateProgress = useMutation(api.challenges.updateExerciseProgress)
   const acceptInvitation = useMutation(api.challenges.acceptChallengeInvitation)
@@ -46,9 +36,7 @@ export default function TodaysWorkout({
   )
 
   const [localProgress, setLocalProgress] = useState<Record<string, number>>({})
-  const [throttleTimeouts, setThrottleTimeouts] = useState<
-    Record<string, NodeJS.Timeout>
-  >({})
+  const throttleTimeoutsRef = useRef<Record<string, NodeJS.Timeout>>({})
 
   // Initialize local progress when data loads
   useEffect(() => {
@@ -72,11 +60,12 @@ export default function TodaysWorkout({
 
   // Cleanup timeouts on unmount to prevent memory leaks
   useEffect(() => {
+    const timeouts = throttleTimeoutsRef.current
     return () => {
       // Clear all pending timeouts on unmount
-      Object.values(throttleTimeouts).forEach(clearTimeout)
+      Object.values(timeouts).forEach(clearTimeout)
     }
-  }, [throttleTimeouts])
+  }, []) // Empty deps - only cleanup on unmount
 
   const handleAcceptInvitation = async (
     participantId: Id<"challenge_participants">
@@ -107,8 +96,8 @@ export default function TodaysWorkout({
     setLocalProgress(prev => ({ ...prev, [exerciseId]: newValue }))
 
     // Clear existing timeout for this exercise
-    if (throttleTimeouts[exerciseId]) {
-      clearTimeout(throttleTimeouts[exerciseId])
+    if (throttleTimeoutsRef.current[exerciseId]) {
+      clearTimeout(throttleTimeoutsRef.current[exerciseId])
     }
 
     // Set new timeout - only send the latest value after 200ms of no changes
@@ -116,7 +105,7 @@ export default function TodaysWorkout({
       updateProgress({ exerciseId, completedReps: newValue })
     }, 200)
 
-    setThrottleTimeouts(prev => ({ ...prev, [exerciseId]: timeout }))
+    throttleTimeoutsRef.current[exerciseId] = timeout
   }
 
   const incrementReps = (exerciseId: Id<"exercises">) => {
@@ -131,74 +120,20 @@ export default function TodaysWorkout({
     }
   }
 
-  // Pending invitations component
-  const PendingInvitationsCard = () => {
-    if (!pendingInvitations || pendingInvitations.length === 0) return null
-
-    return (
-      <div className="card-mobile border-2 border-primary/30 bg-primary/5">
-        <h3 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
-          <span className="text-2xl">📨</span>
-          Challenge Invitations
-          <span className="px-2 py-1 bg-primary text-primary-foreground text-xs font-medium rounded-full">
-            {pendingInvitations.length}
-          </span>
-        </h3>
-        <div className="space-y-3">
-          {pendingInvitations.map(invitation => (
-            <div
-              key={invitation.participantId}
-              className="p-4 bg-background rounded-lg border border-border"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <div className="font-semibold text-foreground">
-                    {invitation.challengeName}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    From {invitation.creatorName} •{" "}
-                    {new Date(invitation.date).toLocaleDateString("en-US", {
-                      weekday: "short",
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {invitation.exerciseCount} exercises •{" "}
-                    {invitation.participantCount} participants
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() =>
-                    handleAcceptInvitation(invitation.participantId)
-                  }
-                  className="flex-1 px-3 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors"
-                >
-                  Accept
-                </button>
-                <button
-                  onClick={() =>
-                    handleDeclineInvitation(invitation.participantId)
-                  }
-                  className="flex-1 px-3 py-2 bg-destructive text-destructive-foreground text-sm font-medium rounded-lg hover:bg-destructive/90 transition-colors"
-                >
-                  Decline
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    )
+  // Still loading - return null (fast backend, avoid flash of empty state)
+  if (todaysChallenges === undefined) {
+    return null
   }
 
-  // No challenge today
-  if (!todaysChallenges || todaysChallenges.length === 0) {
+  // No challenge today (confirmed by data)
+  if (todaysChallenges.length === 0) {
     return (
       <div className="space-y-6">
-        <PendingInvitationsCard />
+        <PendingInvitationsCard
+          pendingInvitations={pendingInvitations}
+          onAccept={handleAcceptInvitation}
+          onDecline={handleDeclineInvitation}
+        />
         <div className="card-mobile text-center">
           <div className="text-6xl mb-4">📅</div>
           <h2 className="text-2xl font-bold text-foreground mb-2">
@@ -208,6 +143,14 @@ export default function TodaysWorkout({
             There&apos;s no active challenge scheduled for today. Create a new
             challenge or check back tomorrow!
           </p>
+          {onNavigateToTab && (
+            <Button
+              onClick={() => onNavigateToTab("challenge")}
+              className="mx-auto"
+            >
+              Create a Challenge
+            </Button>
+          )}
         </div>
         <StreakCard
           currentStreak={streak?.currentStreak ?? 0}
@@ -220,7 +163,11 @@ export default function TodaysWorkout({
   return (
     <div className="space-y-6">
       {/* Pending invitations */}
-      <PendingInvitationsCard />
+      <PendingInvitationsCard
+        pendingInvitations={pendingInvitations}
+        onAccept={handleAcceptInvitation}
+        onDecline={handleDeclineInvitation}
+      />
 
       {/* Render each challenge */}
       {todaysChallenges.map(todaysChallenge => {
@@ -288,9 +235,28 @@ export default function TodaysWorkout({
               <div className="flex flex-wrap gap-2 mb-4">
                 <button
                   onClick={() => {
+                    // Batch all state updates together to avoid race conditions
+                    const updates: Record<string, number> = {}
                     todaysChallenge.exercises.forEach((exercise: Exercise) => {
-                      handleRepChange(exercise._id, exercise.targetReps)
+                      updates[exercise._id] = exercise.targetReps
                     })
+                    setLocalProgress(prev => ({ ...prev, ...updates }))
+
+                    // Clear any existing timeouts and set one batch timeout
+                    Object.values(throttleTimeoutsRef.current).forEach(
+                      clearTimeout
+                    )
+                    const timeout = setTimeout(() => {
+                      todaysChallenge.exercises.forEach(
+                        (exercise: Exercise) => {
+                          updateProgress({
+                            exerciseId: exercise._id,
+                            completedReps: exercise.targetReps,
+                          })
+                        }
+                      )
+                    }, 200)
+                    throttleTimeoutsRef.current["batch"] = timeout
                     toast.success("All exercises marked complete!")
                   }}
                   className="px-3 py-1.5 text-sm bg-green-500/10 text-green-600 rounded-full hover:bg-green-500/20 transition-colors border border-green-500/20"
@@ -322,6 +288,7 @@ export default function TodaysWorkout({
                           onClick={() => decrementReps(exercise._id)}
                           className="w-8 h-8 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center text-lg font-bold transition-all"
                           disabled={completedReps === 0}
+                          aria-label={`Decrease ${exercise.name} reps`}
                         >
                           -
                         </button>
@@ -336,6 +303,7 @@ export default function TodaysWorkout({
                         <button
                           onClick={() => incrementReps(exercise._id)}
                           className="w-8 h-8 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center text-lg font-bold transition-all"
+                          aria-label={`Increase ${exercise.name} reps`}
                         >
                           +
                         </button>

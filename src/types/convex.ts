@@ -61,6 +61,24 @@ export type Notification = {
   createdAt: number
 }
 
+// Streak data type
+export type StreakData = {
+  currentStreak: number
+  longestStreak: number
+  lastCompletedDate: string | null
+}
+
+// Pending invitation type for challenge invitations
+export type PendingInvitation = {
+  participantId: Id<"challenge_participants">
+  challengeId: Id<"challenges">
+  challengeName: string
+  date: string
+  creatorName: string
+  exerciseCount: number
+  participantCount: number
+}
+
 // Array types for convenience
 export type Friends = Friend[]
 export type FriendRequests = FriendRequest[]

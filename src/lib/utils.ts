@@ -87,3 +87,35 @@ export function isPastDate(dateStr: string): boolean {
 export function isFutureDate(dateStr: string): boolean {
   return dateStr > getTodayDate()
 }
+
+/**
+ * Format a date string for display with relative labels (Today, Tomorrow)
+ * @param dateStr - Date in YYYY-MM-DD format
+ */
+export function formatDateDisplayWithRelative(dateStr: string): string {
+  const today = getTodayDate()
+  const date = new Date(dateStr + "T00:00:00")
+
+  if (dateStr === today) {
+    return `Today (${date.toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    })})`
+  }
+
+  const tomorrow = getDateString(1)
+  if (dateStr === tomorrow) {
+    return `Tomorrow (${date.toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    })})`
+  }
+
+  return date.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+  })
+}

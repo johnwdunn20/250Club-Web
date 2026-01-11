@@ -99,6 +99,7 @@ export default function Dashboard() {
               todaysChallenges={todaysChallenges || undefined}
               streak={userStreak}
               pendingInvitations={pendingInvitations}
+              onNavigateToTab={setActiveTab}
             />
           </TabsContent>
 
@@ -107,6 +108,7 @@ export default function Dashboard() {
               friends={friends}
               userChallenges={userChallenges}
               pastChallenges={pastChallenges}
+              onNavigateToTab={setActiveTab}
             />
           </TabsContent>
 
