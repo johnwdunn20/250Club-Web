@@ -1,8 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -217,7 +217,7 @@ export default function Notifications({ notifications }: NotificationsProps) {
   if (notifications.length === 0) {
     return (
       <div className="space-y-6">
-        <Card className="p-6">
+        <div className="card-mobile">
           <div className="text-center py-12">
             <span className="text-6xl mb-4 block">🔔</span>
             <h2 className="text-xl font-semibold mb-2">No notifications yet</h2>
@@ -226,7 +226,7 @@ export default function Notifications({ notifications }: NotificationsProps) {
               here
             </p>
           </div>
-        </Card>
+        </div>
       </div>
     )
   }
@@ -238,11 +238,7 @@ export default function Notifications({ notifications }: NotificationsProps) {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-bold">Notifications</h1>
-          {unreadCount > 0 && (
-            <span className="px-2 py-1 bg-primary text-primary-foreground text-xs font-medium rounded-full">
-              {unreadCount} new
-            </span>
-          )}
+          {unreadCount > 0 && <Badge>{unreadCount} new</Badge>}
         </div>
         <div className="flex gap-2">
           {unreadCount > 0 && (
@@ -318,9 +314,9 @@ export default function Notifications({ notifications }: NotificationsProps) {
 
       <div className="space-y-3">
         {notifications.map(notification => (
-          <Card
+          <div
             key={notification._id}
-            className={`p-4 transition-all ${
+            className={`card-mobile transition-all ${
               notification.isRead
                 ? "bg-background opacity-75"
                 : "bg-accent/30 border-primary/20"
@@ -430,7 +426,7 @@ export default function Notifications({ notifications }: NotificationsProps) {
                 </div>
               )}
             </div>
-          </Card>
+          </div>
         ))}
       </div>
     </div>

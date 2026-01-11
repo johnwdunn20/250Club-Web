@@ -21,6 +21,7 @@ import FriendActivityCard from "./FriendActivityCard"
 import WeeklyProgressCard from "./WeeklyProgressCard"
 import UpcomingChallengesCard from "./UpcomingChallengesCard"
 import { Button } from "./ui/button"
+import { Skeleton } from "./ui/skeleton"
 import { toast } from "sonner"
 
 interface TodaysWorkoutProps {
@@ -133,9 +134,36 @@ export default function TodaysWorkout({
     }
   }
 
-  // Still loading - return null (fast backend, avoid flash of empty state)
+  // Loading state - show skeleton
   if (todaysChallenges === undefined) {
-    return null
+    return (
+      <div className="space-y-6">
+        {/* Skeleton for challenge card */}
+        <div className="card-mobile">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <Skeleton className="h-8 w-48 mb-2" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+            <Skeleton className="h-8 w-20 rounded-full" />
+          </div>
+          <Skeleton className="h-4 w-64 mb-6" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+            <Skeleton className="h-28 rounded-lg" />
+            <Skeleton className="h-28 rounded-lg" />
+          </div>
+          <Skeleton className="h-3 w-full rounded-full" />
+        </div>
+        {/* Skeleton for streak card */}
+        <div className="card-mobile">
+          <Skeleton className="h-6 w-32 mb-4" />
+          <div className="flex gap-4">
+            <Skeleton className="h-16 flex-1 rounded-lg" />
+            <Skeleton className="h-16 flex-1 rounded-lg" />
+          </div>
+        </div>
+      </div>
+    )
   }
 
   // No challenge today (confirmed by data) - null means query returned no challenges, empty array also means no challenges
@@ -164,9 +192,10 @@ export default function TodaysWorkout({
           {/* Quick action buttons */}
           {onNavigateToTab && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <button
+              <Button
+                variant="ghost"
                 onClick={() => onNavigateToTab("challenge")}
-                className="flex items-center gap-3 p-4 bg-primary/10 hover:bg-primary/20 border border-primary/20 rounded-lg transition-colors text-left"
+                className="flex items-center justify-start gap-3 p-4 h-auto bg-primary/10 hover:bg-primary/20 border border-primary/20 rounded-lg text-left"
               >
                 <span className="text-2xl">🎯</span>
                 <div>
@@ -177,10 +206,11 @@ export default function TodaysWorkout({
                     Start a new workout challenge
                   </div>
                 </div>
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="ghost"
                 onClick={() => onNavigateToTab("friends")}
-                className="flex items-center gap-3 p-4 bg-accent/10 hover:bg-accent/20 border border-accent/20 rounded-lg transition-colors text-left"
+                className="flex items-center justify-start gap-3 p-4 h-auto bg-accent/10 hover:bg-accent/20 border border-accent/20 rounded-lg text-left"
               >
                 <span className="text-2xl">👥</span>
                 <div>
@@ -191,7 +221,7 @@ export default function TodaysWorkout({
                     Invite friends to compete
                   </div>
                 </div>
-              </button>
+              </Button>
             </div>
           )}
         </div>
@@ -290,7 +320,9 @@ export default function TodaysWorkout({
 
               {/* Quick actions */}
               <div className="flex flex-wrap gap-2 mb-4">
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => {
                     // Batch all state updates together to avoid race conditions
                     const updates: Record<string, number> = {}
@@ -316,10 +348,10 @@ export default function TodaysWorkout({
                     throttleTimeoutsRef.current["batch"] = timeout
                     toast.success("All exercises marked complete!")
                   }}
-                  className="px-3 py-1.5 text-sm bg-green-500/10 text-green-600 rounded-full hover:bg-green-500/20 transition-colors border border-green-500/20"
+                  className="bg-green-500/10 text-green-600 rounded-full hover:bg-green-500/20 border border-green-500/20"
                 >
                   ✓ Complete All
-                </button>
+                </Button>
               </div>
 
               {/* Interactive exercise cards */}
@@ -341,14 +373,16 @@ export default function TodaysWorkout({
                         {exercise.name}
                       </div>
                       <div className="flex items-center justify-center gap-2 mb-2">
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
                           onClick={() => decrementReps(exercise._id)}
-                          className="w-8 h-8 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center text-lg font-bold transition-all"
+                          className="w-8 h-8 rounded-full bg-muted hover:bg-muted/80"
                           disabled={completedReps === 0}
                           aria-label={`Decrease ${exercise.name} reps`}
                         >
                           -
-                        </button>
+                        </Button>
                         <div className="min-w-[60px] text-center">
                           <div className="text-2xl font-bold text-foreground">
                             {completedReps}
@@ -357,30 +391,34 @@ export default function TodaysWorkout({
                             / {exercise.targetReps}
                           </div>
                         </div>
-                        <button
+                        <Button
+                          variant="default"
+                          size="icon-sm"
                           onClick={() => incrementReps(exercise._id)}
-                          className="w-8 h-8 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center text-lg font-bold transition-all"
+                          className="w-8 h-8 rounded-full"
                           aria-label={`Increase ${exercise.name} reps`}
                         >
                           +
-                        </button>
+                        </Button>
                       </div>
                       {/* Quick complete button for individual exercise */}
-                      <button
+                      <Button
+                        variant="link"
+                        size="sm"
                         onClick={() =>
                           handleRepChange(
                             exercise._id,
                             isCompleted ? 0 : exercise.targetReps
                           )
                         }
-                        className={`text-xs font-semibold ${
+                        className={`text-xs font-semibold h-auto p-0 ${
                           isCompleted
                             ? "text-green-600"
                             : "text-muted-foreground hover:text-primary"
                         }`}
                       >
                         {isCompleted ? "✓ Complete!" : "Quick complete"}
-                      </button>
+                      </Button>
                     </div>
                   )
                 })}
@@ -392,7 +430,14 @@ export default function TodaysWorkout({
                   <span>Progress</span>
                   <span>{userCompletionPercentage}%</span>
                 </div>
-                <div className="h-3 bg-muted rounded-full overflow-hidden">
+                <div
+                  role="progressbar"
+                  aria-valuenow={userCompletionPercentage}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-label="Challenge progress"
+                  className="h-3 bg-muted rounded-full overflow-hidden"
+                >
                   <div
                     className="h-full bg-gradient-to-r from-primary via-accent to-primary transition-all duration-500"
                     style={{ width: `${userCompletionPercentage}%` }}

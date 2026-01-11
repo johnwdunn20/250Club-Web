@@ -6,12 +6,13 @@ import { api } from "../../convex/_generated/api"
 import { Id } from "../../convex/_generated/dataModel"
 import { toast } from "sonner"
 import { Button } from "./ui/button"
+import { Input } from "./ui/input"
+import { Progress } from "./ui/progress"
 import {
   getTodayDate,
   getDateString,
   formatDateDisplay,
   formatDateDisplayWithRelative,
-  parseDateString,
 } from "@/lib/utils"
 import type { Friends, UserChallenges } from "@/types/convex"
 import {
@@ -291,14 +292,16 @@ export default function NewChallenge({
           </label>
           <div className="flex flex-wrap gap-2">
             {EXERCISE_TEMPLATES.map((template, index) => (
-              <button
+              <Button
                 key={index}
                 type="button"
+                variant="secondary"
+                size="sm"
                 onClick={() => applyTemplate(template)}
-                className="px-3 py-1.5 text-sm bg-secondary/50 text-secondary-foreground rounded-full hover:bg-secondary transition-colors border border-border"
+                className="rounded-full"
               >
                 {template.name}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -309,12 +312,12 @@ export default function NewChallenge({
             <label className="block text-sm font-medium text-foreground mb-2">
               Challenge Name
             </label>
-            <input
+            <Input
               type="text"
               placeholder="e.g., Weekend Warrior"
               value={challengeName}
               onChange={e => setChallengeName(e.target.value)}
-              className="w-full px-4 py-3 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground placeholder:text-muted-foreground"
+              className="h-11"
               required
             />
           </div>
@@ -324,12 +327,12 @@ export default function NewChallenge({
               Target Date
             </label>
             <div className="flex gap-2 items-center">
-              <input
+              <Input
                 type="date"
                 value={selectedDate}
                 min={today}
                 onChange={e => setSelectedDate(e.target.value)}
-                className="flex-1 px-4 py-3 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
+                className="flex-1 h-11"
               />
               <span className="text-sm text-muted-foreground hidden sm:block">
                 {formatDateDisplayWithRelative(selectedDate)}
@@ -370,30 +373,25 @@ export default function NewChallenge({
               <label className="block text-sm font-medium text-foreground">
                 Exercises
               </label>
-              <button
-                type="button"
-                onClick={handleAddExercise}
-                className="px-3 py-1 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors"
-              >
+              <Button type="button" size="sm" onClick={handleAddExercise}>
                 + Add Exercise
-              </button>
+              </Button>
             </div>
             <div className="space-y-3">
               {exercises.map((exercise, index) => (
                 <div key={index} className="flex gap-2 items-end">
                   <div className="flex-1">
-                    <input
+                    <Input
                       type="text"
                       placeholder="Exercise name"
                       value={exercise.name}
                       onChange={e =>
                         handleExerciseChange(index, "name", e.target.value)
                       }
-                      className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground placeholder:text-muted-foreground"
                     />
                   </div>
                   <div className="w-24">
-                    <input
+                    <Input
                       type="number"
                       placeholder="Reps"
                       value={exercise.targetReps || ""}
@@ -404,18 +402,18 @@ export default function NewChallenge({
                           parseInt(e.target.value) || 0
                         )
                       }
-                      className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground placeholder:text-muted-foreground"
                       min="1"
                     />
                   </div>
-                  <button
+                  <Button
                     type="button"
+                    variant="destructive"
+                    size="sm"
                     onClick={() => handleRemoveExercise(index)}
                     disabled={exercises.length === 1}
-                    className="px-3 py-2 bg-destructive text-destructive-foreground text-sm font-medium rounded-lg hover:bg-destructive/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Remove
-                  </button>
+                  </Button>
                 </div>
               ))}
             </div>
@@ -428,12 +426,12 @@ export default function NewChallenge({
             </label>
             {friends && friends.length > 0 ? (
               <div className="space-y-3">
-                <input
+                <Input
                   type="text"
                   placeholder="Search friends..."
                   value={friendSearchTerm}
                   onChange={e => setFriendSearchTerm(e.target.value)}
-                  className="w-full px-4 py-3 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground placeholder:text-muted-foreground"
+                  className="h-11"
                 />
                 <div className="max-h-40 overflow-y-auto space-y-2">
                   {filteredFriends.map(friendship => (
@@ -479,13 +477,14 @@ export default function NewChallenge({
             )}
           </div>
 
-          <button
+          <Button
             type="submit"
+            size="lg"
             disabled={isSubmitting}
-            className="w-full px-6 py-3 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary/90 transition-all shadow-md hover:shadow-lg hover:scale-105 active:scale-95 mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full mt-6"
           >
             {isSubmitting ? "Creating..." : "Create Challenge"}
-          </button>
+          </Button>
         </form>
       </div>
 
@@ -511,7 +510,9 @@ export default function NewChallenge({
                       <div className="text-sm text-muted-foreground">
                         {challenge.date}
                       </div>
-                      <button
+                      <Button
+                        variant={isCreator ? "destructive" : "ghost"}
+                        size="sm"
                         onClick={() =>
                           handleChallengeAction(
                             challenge._id,
@@ -519,14 +520,10 @@ export default function NewChallenge({
                             challenge.creator?._id
                           )
                         }
-                        className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
-                          isCreator
-                            ? "bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                            : "bg-muted text-muted-foreground hover:bg-muted/80"
-                        }`}
+                        className="h-7 px-2 text-xs"
                       >
                         {isCreator ? "Delete" : "Leave"}
-                      </button>
+                      </Button>
                     </div>
                   </div>
                   <div className="text-sm text-muted-foreground mb-2">
@@ -608,16 +605,14 @@ export default function NewChallenge({
                   </div>
                 </div>
                 {/* Mini progress bar */}
-                <div className="mt-2 h-1.5 bg-muted rounded-full overflow-hidden">
-                  <div
-                    className={`h-full transition-all ${
-                      challenge.completionPercentage === 100
-                        ? "bg-green-500"
-                        : "bg-primary"
-                    }`}
-                    style={{ width: `${challenge.completionPercentage}%` }}
-                  />
-                </div>
+                <Progress
+                  value={challenge.completionPercentage}
+                  className={`mt-2 h-1.5 ${
+                    challenge.completionPercentage === 100
+                      ? "[&>div]:bg-green-500"
+                      : ""
+                  }`}
+                />
               </div>
             ))
           ) : (

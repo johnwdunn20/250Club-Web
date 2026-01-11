@@ -180,3 +180,81 @@ When passing Convex query results as props:
 2. **Type props to accept `| null | undefined`** - forces explicit handling
 3. **Check `=== undefined` for loading** - not falsy checks
 4. **Check `=== null` for no-data** - distinct from loading
+
+## Best Practices
+
+### Complex Conditional Classes
+
+For complex conditional styling, use helper functions instead of nested ternaries:
+
+```tsx
+// BAD: Hard to read and maintain
+className={`base ${condition1 ? "a" : condition2 ? "b" : condition3 ? "c" : "d"}`}
+
+// GOOD: Extract to helper function
+function getStatusClasses(item: Item): string {
+  if (item.isCompleted) return "bg-green-500 text-white"
+  if (item.isPending) return "bg-yellow-500 text-black"
+  if (item.isError) return "bg-red-500 text-white"
+  return "bg-muted text-muted-foreground"
+}
+
+// Usage
+className={`base ${getStatusClasses(item)}`}
+```
+
+### Performance in Loops
+
+Never calculate expensive values inside `.map()` or render loops:
+
+```tsx
+// BAD: Calculated N times per render
+{items.map(item => {
+  const today = new Date().toISOString().split("T")[0]
+  return <div>{item.date === today && "Today"}</div>
+})}
+
+// GOOD: Calculated once before loop
+const today = getTodayDate()
+{items.map(item => (
+  <div>{item.date === today && "Today"}</div>
+))}
+```
+
+### Loading States: Always Show Skeletons
+
+**Never return `null` for loading states.** Always show a skeleton that matches the content layout:
+
+```tsx
+// BAD: Causes layout shift, poor UX
+if (data === undefined) return null
+
+// GOOD: Maintains layout, shows loading feedback
+if (data === undefined) {
+  return (
+    <div className="card-mobile">
+      <Skeleton className="h-8 w-48 mb-4" />
+      <Skeleton className="h-4 w-full mb-2" />
+      <Skeleton className="h-4 w-3/4" />
+    </div>
+  )
+}
+```
+
+### Accessibility for Custom Components
+
+When building custom interactive elements (progress bars, counters, etc.), add proper ARIA attributes:
+
+```tsx
+// Custom progress bar
+<div
+  role="progressbar"
+  aria-valuenow={percentage}
+  aria-valuemin={0}
+  aria-valuemax={100}
+  aria-label="Challenge progress"
+  className="h-3 bg-muted rounded-full overflow-hidden"
+>
+  <div style={{ width: `${percentage}%` }} />
+</div>
+```
