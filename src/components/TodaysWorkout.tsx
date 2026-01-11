@@ -297,31 +297,6 @@ export default function TodaysWorkout({
                 >
                   ✓ Complete All
                 </button>
-                <button
-                  onClick={() => {
-                    todaysChallenge.exercises.forEach((exercise: Exercise) => {
-                      handleRepChange(
-                        exercise._id,
-                        Math.floor(exercise.targetReps / 2)
-                      )
-                    })
-                    toast.info("All exercises set to 50%")
-                  }}
-                  className="px-3 py-1.5 text-sm bg-secondary/50 text-secondary-foreground rounded-full hover:bg-secondary transition-colors border border-border"
-                >
-                  50%
-                </button>
-                <button
-                  onClick={() => {
-                    todaysChallenge.exercises.forEach((exercise: Exercise) => {
-                      handleRepChange(exercise._id, 0)
-                    })
-                    toast.info("Progress reset")
-                  }}
-                  className="px-3 py-1.5 text-sm bg-muted text-muted-foreground rounded-full hover:bg-muted/80 transition-colors border border-border"
-                >
-                  Reset
-                </button>
               </div>
 
               {/* Interactive exercise cards */}
