@@ -4,17 +4,46 @@ import { useState, useEffect } from "react"
 import { useMutation } from "convex/react"
 import { api } from "../../convex/_generated/api"
 import { Id } from "../../convex/_generated/dataModel"
-import type { TodaysChallenges } from "@/types/convex"
+import type {
+  TodaysChallenges,
+  Exercise,
+  ChallengeParticipant,
+} from "@/types/convex"
 import StreakCard from "./StreakCard"
+import { toast } from "sonner"
+
+interface StreakData {
+  currentStreak: number
+  longestStreak: number
+  lastCompletedDate: string | null
+}
+
+interface PendingInvitation {
+  participantId: Id<"challenge_participants">
+  challengeId: Id<"challenges">
+  challengeName: string
+  date: string
+  creatorName: string
+  exerciseCount: number
+  participantCount: number
+}
 
 interface TodaysWorkoutProps {
   todaysChallenges: TodaysChallenges | undefined
+  streak: StreakData | undefined
+  pendingInvitations: PendingInvitation[] | undefined
 }
 
 export default function TodaysWorkout({
   todaysChallenges,
+  streak,
+  pendingInvitations,
 }: TodaysWorkoutProps) {
   const updateProgress = useMutation(api.challenges.updateExerciseProgress)
+  const acceptInvitation = useMutation(api.challenges.acceptChallengeInvitation)
+  const declineInvitation = useMutation(
+    api.challenges.declineChallengeInvitation
+  )
 
   const [localProgress, setLocalProgress] = useState<Record<string, number>>({})
   const [throttleTimeouts, setThrottleTimeouts] = useState<
@@ -26,10 +55,14 @@ export default function TodaysWorkout({
     if (todaysChallenges && todaysChallenges.length > 0) {
       const initialProgress: Record<string, number> = {}
       todaysChallenges.forEach(challenge => {
-        challenge.exercises.forEach(exercise => {
+        challenge.exercises.forEach((exercise: Exercise) => {
           const userProgress = challenge.participants
-            .find(p => p.userId === challenge.currentUserId)
-            ?.exerciseProgress.find(ep => ep.exerciseId === exercise._id)
+            .find(
+              (p: ChallengeParticipant) => p.userId === challenge.currentUserId
+            )
+            ?.exerciseProgress.find(
+              (ep: { exerciseId: string }) => ep.exerciseId === exercise._id
+            )
           initialProgress[exercise._id] = userProgress?.completedReps || 0
         })
       })
@@ -44,6 +77,30 @@ export default function TodaysWorkout({
       Object.values(throttleTimeouts).forEach(clearTimeout)
     }
   }, [throttleTimeouts])
+
+  const handleAcceptInvitation = async (
+    participantId: Id<"challenge_participants">
+  ) => {
+    try {
+      await acceptInvitation({ participantId })
+      toast.success("Challenge invitation accepted!")
+    } catch (error) {
+      console.error("Failed to accept invitation:", error)
+      toast.error("Failed to accept invitation")
+    }
+  }
+
+  const handleDeclineInvitation = async (
+    participantId: Id<"challenge_participants">
+  ) => {
+    try {
+      await declineInvitation({ participantId })
+      toast.info("Challenge invitation declined")
+    } catch (error) {
+      console.error("Failed to decline invitation:", error)
+      toast.error("Failed to decline invitation")
+    }
+  }
 
   const handleRepChange = (exerciseId: Id<"exercises">, newValue: number) => {
     // Update local state immediately for responsive UI
@@ -74,10 +131,74 @@ export default function TodaysWorkout({
     }
   }
 
+  // Pending invitations component
+  const PendingInvitationsCard = () => {
+    if (!pendingInvitations || pendingInvitations.length === 0) return null
+
+    return (
+      <div className="card-mobile border-2 border-primary/30 bg-primary/5">
+        <h3 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
+          <span className="text-2xl">📨</span>
+          Challenge Invitations
+          <span className="px-2 py-1 bg-primary text-primary-foreground text-xs font-medium rounded-full">
+            {pendingInvitations.length}
+          </span>
+        </h3>
+        <div className="space-y-3">
+          {pendingInvitations.map(invitation => (
+            <div
+              key={invitation.participantId}
+              className="p-4 bg-background rounded-lg border border-border"
+            >
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <div className="font-semibold text-foreground">
+                    {invitation.challengeName}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    From {invitation.creatorName} •{" "}
+                    {new Date(invitation.date).toLocaleDateString("en-US", {
+                      weekday: "short",
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {invitation.exerciseCount} exercises •{" "}
+                    {invitation.participantCount} participants
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() =>
+                    handleAcceptInvitation(invitation.participantId)
+                  }
+                  className="flex-1 px-3 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors"
+                >
+                  Accept
+                </button>
+                <button
+                  onClick={() =>
+                    handleDeclineInvitation(invitation.participantId)
+                  }
+                  className="flex-1 px-3 py-2 bg-destructive text-destructive-foreground text-sm font-medium rounded-lg hover:bg-destructive/90 transition-colors"
+                >
+                  Decline
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
   // No challenge today
   if (!todaysChallenges || todaysChallenges.length === 0) {
     return (
       <div className="space-y-6">
+        <PendingInvitationsCard />
         <div className="card-mobile text-center">
           <div className="text-6xl mb-4">📅</div>
           <h2 className="text-2xl font-bold text-foreground mb-2">
@@ -88,36 +209,47 @@ export default function TodaysWorkout({
             challenge or check back tomorrow!
           </p>
         </div>
-        <StreakCard currentStreak={0} />
+        <StreakCard
+          currentStreak={streak?.currentStreak ?? 0}
+          longestStreak={streak?.longestStreak ?? 0}
+        />
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
+      {/* Pending invitations */}
+      <PendingInvitationsCard />
+
       {/* Render each challenge */}
       {todaysChallenges.map(todaysChallenge => {
         // Find current user's progress for this challenge
-        const currentUser = todaysChallenge.participants.find(
-          p => p.userId === todaysChallenge.currentUserId
+        const currentUserParticipant = todaysChallenge.participants.find(
+          (p: ChallengeParticipant) =>
+            p.userId === todaysChallenge.currentUserId
         )
-        const userTotalCompleted = currentUser?.totalCompleted || 0
-        const userTotalTarget = currentUser?.totalTarget || 0
+        const userTotalCompleted = currentUserParticipant?.totalCompleted || 0
+        const userTotalTarget = currentUserParticipant?.totalTarget || 0
 
         // Calculate completion percentage by averaging individual exercise completion rates
         const exerciseCount = todaysChallenge.exercises.length
-        const userCompletionPercentage = exerciseCount > 0
-          ? Math.round(
-              todaysChallenge.exercises.reduce((sum, exercise) => {
-                const completedReps = localProgress[exercise._id] || 0
-                const exercisePercentage = Math.min(
-                  (completedReps / exercise.targetReps) * 100,
-                  100
-                )
-                return sum + exercisePercentage
-              }, 0) / exerciseCount
-            )
-          : 0
+        const userCompletionPercentage =
+          exerciseCount > 0
+            ? Math.round(
+                todaysChallenge.exercises.reduce(
+                  (sum: number, exercise: Exercise) => {
+                    const completedReps = localProgress[exercise._id] || 0
+                    const exercisePercentage = Math.min(
+                      (completedReps / exercise.targetReps) * 100,
+                      100
+                    )
+                    return sum + exercisePercentage
+                  },
+                  0
+                ) / exerciseCount
+              )
+            : 0
 
         // Sort participants by total completed (descending)
         const sortedParticipants = [...todaysChallenge.participants].sort(
@@ -152,9 +284,49 @@ export default function TodaysWorkout({
                 Complete all exercises to maintain your streak
               </p>
 
+              {/* Quick actions */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                <button
+                  onClick={() => {
+                    todaysChallenge.exercises.forEach((exercise: Exercise) => {
+                      handleRepChange(exercise._id, exercise.targetReps)
+                    })
+                    toast.success("All exercises marked complete!")
+                  }}
+                  className="px-3 py-1.5 text-sm bg-green-500/10 text-green-600 rounded-full hover:bg-green-500/20 transition-colors border border-green-500/20"
+                >
+                  ✓ Complete All
+                </button>
+                <button
+                  onClick={() => {
+                    todaysChallenge.exercises.forEach((exercise: Exercise) => {
+                      handleRepChange(
+                        exercise._id,
+                        Math.floor(exercise.targetReps / 2)
+                      )
+                    })
+                    toast.info("All exercises set to 50%")
+                  }}
+                  className="px-3 py-1.5 text-sm bg-secondary/50 text-secondary-foreground rounded-full hover:bg-secondary transition-colors border border-border"
+                >
+                  50%
+                </button>
+                <button
+                  onClick={() => {
+                    todaysChallenge.exercises.forEach((exercise: Exercise) => {
+                      handleRepChange(exercise._id, 0)
+                    })
+                    toast.info("Progress reset")
+                  }}
+                  className="px-3 py-1.5 text-sm bg-muted text-muted-foreground rounded-full hover:bg-muted/80 transition-colors border border-border"
+                >
+                  Reset
+                </button>
+              </div>
+
               {/* Interactive exercise cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                {todaysChallenge.exercises.map(exercise => {
+                {todaysChallenge.exercises.map((exercise: Exercise) => {
                   const completedReps = localProgress[exercise._id] || 0
                   const isCompleted = completedReps >= exercise.targetReps
 
@@ -193,11 +365,22 @@ export default function TodaysWorkout({
                           +
                         </button>
                       </div>
-                      {isCompleted && (
-                        <div className="text-xs text-green-600 font-semibold">
-                          ✓ Complete!
-                        </div>
-                      )}
+                      {/* Quick complete button for individual exercise */}
+                      <button
+                        onClick={() =>
+                          handleRepChange(
+                            exercise._id,
+                            isCompleted ? 0 : exercise.targetReps
+                          )
+                        }
+                        className={`text-xs font-semibold ${
+                          isCompleted
+                            ? "text-green-600"
+                            : "text-muted-foreground hover:text-primary"
+                        }`}
+                      >
+                        {isCompleted ? "✓ Complete!" : "Quick complete"}
+                      </button>
                     </div>
                   )
                 })}
@@ -226,7 +409,7 @@ export default function TodaysWorkout({
               <div className="space-y-3">
                 {sortedParticipants.map((participant, index) => {
                   const isCurrentUser =
-                    participant.userId === currentUser?.userId
+                    participant.userId === currentUserParticipant?.userId
                   const isCompleted = participant.completionPercentage === 100
 
                   return (
@@ -275,7 +458,10 @@ export default function TodaysWorkout({
       })}
 
       {/* Current streak card */}
-      <StreakCard currentStreak={0} />
+      <StreakCard
+        currentStreak={streak?.currentStreak ?? 0}
+        longestStreak={streak?.longestStreak ?? 0}
+      />
     </div>
   )
 }

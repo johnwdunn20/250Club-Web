@@ -6,26 +6,24 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Get today's date in YYYY-MM-DD format (user's timezone)
+ * Get user's timezone string (e.g., 'America/New_York')
+ * This is used when calling Convex functions that need timezone info
  */
-export function getTodayDate(): string {
-  const now = new Date()
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    .toISOString()
-    .split("T")[0]
+export function getUserTimezone(): string {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone
 }
 
 /**
- * Get tomorrow's date in YYYY-MM-DD format (user's timezone)
+ * Get today's date in YYYY-MM-DD format using user's local timezone
+ * Uses Intl.DateTimeFormat for consistent formatting across browsers
  */
-export function getTomorrowDate(): string {
-  const now = new Date()
-  const tomorrow = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate() + 1
-  )
-  return tomorrow.toISOString().split("T")[0]
+export function getTodayDate(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: getUserTimezone(),
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date())
 }
 
 /**
@@ -33,18 +31,59 @@ export function getTomorrowDate(): string {
  * @param daysOffset - Number of days to offset (positive for future, negative for past)
  */
 export function getDateString(daysOffset: number = 0): string {
-  const now = new Date()
-  const date = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate() + daysOffset
-  )
-  return date.toISOString().split("T")[0]
+  const targetDate = new Date()
+  targetDate.setDate(targetDate.getDate() + daysOffset)
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: getUserTimezone(),
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(targetDate)
 }
 
 /**
- * Get user's timezone
+ * Get tomorrow's date in YYYY-MM-DD format (user's timezone)
  */
-export function getUserTimezone(): string {
-  return Intl.DateTimeFormat().resolvedOptions().timeZone
+export function getTomorrowDate(): string {
+  return getDateString(1)
+}
+
+/**
+ * Format a date string for display
+ * @param dateStr - Date in YYYY-MM-DD format
+ * @param options - Intl.DateTimeFormat options
+ */
+export function formatDateDisplay(
+  dateStr: string,
+  options?: Intl.DateTimeFormatOptions
+): string {
+  const date = new Date(dateStr + "T00:00:00")
+  return date.toLocaleDateString(
+    "en-US",
+    options || { weekday: "long", month: "long", day: "numeric" }
+  )
+}
+
+/**
+ * Check if a date is today
+ * @param dateStr - Date in YYYY-MM-DD format
+ */
+export function isToday(dateStr: string): boolean {
+  return dateStr === getTodayDate()
+}
+
+/**
+ * Check if a date is in the past
+ * @param dateStr - Date in YYYY-MM-DD format
+ */
+export function isPastDate(dateStr: string): boolean {
+  return dateStr < getTodayDate()
+}
+
+/**
+ * Check if a date is in the future
+ * @param dateStr - Date in YYYY-MM-DD format
+ */
+export function isFutureDate(dateStr: string): boolean {
+  return dateStr > getTodayDate()
 }

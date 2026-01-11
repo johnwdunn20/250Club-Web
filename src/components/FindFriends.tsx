@@ -51,6 +51,7 @@ export default function FindFriends({
   const acceptFriendRequest = useMutation(api.friendships.acceptFriendRequest)
   const rejectFriendRequest = useMutation(api.friendships.rejectFriendRequest)
   const removeFriend = useMutation(api.friendships.removeFriend)
+  const cancelFriendRequest = useMutation(api.friendships.cancelFriendRequest)
 
   // Clear loading state after search
   useEffect(() => {
@@ -116,6 +117,16 @@ export default function FindFriends({
       toast.error("Failed to remove friend")
     } finally {
       setConfirmRemove({ isOpen: false, friendId: null, friendName: "" })
+    }
+  }
+
+  const handleCancelRequest = async (requestId: Id<"friend_requests">) => {
+    try {
+      await cancelFriendRequest({ requestId })
+      toast.info("Friend request cancelled")
+    } catch (error) {
+      console.error("Failed to cancel friend request:", error)
+      toast.error("Failed to cancel friend request")
     }
   }
 
@@ -323,9 +334,12 @@ export default function FindFriends({
                     {request.friend?.email}
                   </p>
                 </div>
-                <span className="px-2 py-1 bg-muted text-muted-foreground text-xs font-medium rounded-full">
-                  Pending
-                </span>
+                <button
+                  onClick={() => handleCancelRequest(request._id)}
+                  className="px-3 py-1 bg-muted text-muted-foreground text-sm font-medium rounded-lg hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                >
+                  Cancel
+                </button>
               </div>
             ))
           ) : (

@@ -1,7 +1,10 @@
-import { mutation } from "./_generated/server"
+import { mutation, query } from "./_generated/server"
+import { v } from "convex/values"
+import { getCurrentUser } from "./utils"
 
 export const store = mutation({
   args: {},
+  returns: v.id("users"),
   handler: async ctx => {
     const identity = await ctx.auth.getUserIdentity()
     if (!identity) {
@@ -32,5 +35,23 @@ export const store = mutation({
       tokenIdentifier: identity.tokenIdentifier,
       email: identity.email ?? undefined,
     })
+  },
+})
+
+// Get current user info
+export const getCurrentUserInfo = query({
+  args: {},
+  returns: v.object({
+    _id: v.id("users"),
+    name: v.string(),
+    email: v.optional(v.string()),
+  }),
+  handler: async ctx => {
+    const user = await getCurrentUser(ctx)
+    return {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+    }
   },
 })

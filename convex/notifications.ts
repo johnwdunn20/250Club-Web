@@ -111,3 +111,47 @@ export const createNotification = internalMutation({
     })
   },
 })
+
+// Delete a single notification
+export const deleteNotification = mutation({
+  args: {
+    notificationId: v.id("notifications"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx)
+
+    const notification = await ctx.db.get(args.notificationId)
+    if (!notification) {
+      throw new Error("Notification not found")
+    }
+
+    if (notification.userId !== user._id) {
+      throw new Error("Unauthorized")
+    }
+
+    await ctx.db.delete(args.notificationId)
+
+    return null
+  },
+})
+
+// Clear all notifications for the current user
+export const clearAllNotifications = mutation({
+  args: {},
+  returns: v.null(),
+  handler: async ctx => {
+    const user = await getCurrentUser(ctx)
+
+    const notifications = await ctx.db
+      .query("notifications")
+      .withIndex("by_user", q => q.eq("userId", user._id))
+      .collect()
+
+    await Promise.all(
+      notifications.map(notification => ctx.db.delete(notification._id))
+    )
+
+    return null
+  },
+})
