@@ -34,7 +34,7 @@ export const getNotifications = query({
       message: notification.message,
       isRead: notification.isRead,
       createdAt: notification.createdAt,
-      type: notification.type,
+      type: notification.type ?? "info",
       relatedId: notification.relatedId,
     }))
   },
