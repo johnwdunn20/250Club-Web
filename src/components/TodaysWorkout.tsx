@@ -24,7 +24,7 @@ import { Button } from "./ui/button"
 import { toast } from "sonner"
 
 interface TodaysWorkoutProps {
-  todaysChallenges: TodaysChallenges | undefined
+  todaysChallenges: TodaysChallenges | null | undefined
   streak: StreakData | undefined
   pendingInvitations: PendingInvitation[] | undefined
   friendActivity: FriendActivity[] | undefined
@@ -138,8 +138,8 @@ export default function TodaysWorkout({
     return null
   }
 
-  // No challenge today (confirmed by data)
-  if (todaysChallenges.length === 0) {
+  // No challenge today (confirmed by data) - null means query returned no challenges, empty array also means no challenges
+  if (todaysChallenges === null || todaysChallenges.length === 0) {
     return (
       <div className="space-y-6">
         {/* Pending invitations */}

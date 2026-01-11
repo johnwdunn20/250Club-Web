@@ -102,7 +102,7 @@ export default function Dashboard() {
 
           <TabsContent value="workout">
             <TodaysWorkout
-              todaysChallenges={todaysChallenges || undefined}
+              todaysChallenges={todaysChallenges}
               streak={userStreak}
               pendingInvitations={pendingInvitations}
               friendActivity={friendActivity}
