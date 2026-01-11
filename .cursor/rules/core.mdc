@@ -27,7 +27,6 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 
 // Use cn() for conditional classes
 import { cn } from "@/lib/utils"
-
 ;<Button
   className={cn("w-full", isLoading && "opacity-50")}
   disabled={isLoading}
@@ -209,16 +208,18 @@ Never calculate expensive values inside `.map()` or render loops:
 
 ```tsx
 // BAD: Calculated N times per render
-{items.map(item => {
-  const today = new Date().toISOString().split("T")[0]
-  return <div>{item.date === today && "Today"}</div>
-})}
+{
+  items.map(item => {
+    const today = new Date().toISOString().split("T")[0]
+    return <div>{item.date === today && "Today"}</div>
+  })
+}
 
 // GOOD: Calculated once before loop
 const today = getTodayDate()
-{items.map(item => (
-  <div>{item.date === today && "Today"}</div>
-))}
+{
+  items.map(item => <div>{item.date === today && "Today"}</div>)
+}
 ```
 
 ### Loading States: Always Show Skeletons
